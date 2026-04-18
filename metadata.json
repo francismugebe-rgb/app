@@ -1,0 +1,6 @@
+{
+  "name": "Web2App Converter",
+  "description": "Transform any website into a native Android APK effortlessly. Customize your app name, icon, and package ID.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
