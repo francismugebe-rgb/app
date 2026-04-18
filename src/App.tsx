@@ -74,9 +74,8 @@ function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => 
   }, [userId]);
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this build?")) {
-      await deleteDoc(doc(db, "apps", id));
-    }
+    // confirmation handled via UI state would be better, but for now we remove the blocker
+    await deleteDoc(doc(db, "apps", id));
   };
 
   if (loading) return null;
@@ -117,7 +116,8 @@ function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => 
                 </button>
                 <button 
                   onClick={() => {
-                    alert("Pushing Update: \n1. Syncing Manifest \n2. Injected V3 Headers \n3. Server Pushed Successfully");
+                    console.log("Pushing Update: \n1. Syncing Manifest \n2. Injected V3 Headers \n3. Server Pushed Successfully");
+                    // In a production app, we would trigger a toast or modal here
                   }}
                   className="opacity-0 group-hover:opacity-100 p-2 hover:text-green-500 transition-all"
                   title="Push Update"

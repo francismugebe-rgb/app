@@ -37,6 +37,7 @@ service cloud.firestore {
              data.appName is string && data.appName.size() <= 100 &&
              data.packageId is string && data.packageId.size() <= 128 &&
              data.status in ['pending', 'building', 'success', 'error'] &&
+             data.signingType in ['auto', 'manual'] &&
              data.createdAt == request.time;
     }
 
@@ -46,7 +47,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidApp(incoming());
       allow update: if isSignedIn() && existing().userId == request.auth.uid && (
         // Action: User updates metadata
-        (incoming().diff(existing()).affectedKeys().hasOnly(['appName', 'url', 'updatedAt']) && 
+        (incoming().diff(existing()).affectedKeys().hasOnly(['appName', 'url', 'signingType', 'updatedAt']) && 
          incoming().updatedAt == request.time) ||
         // Action: System/User updates status/downloadUrl after build
         (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'downloadUrl', 'updatedAt']) &&

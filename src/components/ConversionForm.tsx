@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Globe, Smartphone, Package, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock, AlertCircle, Link as LinkIcon, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
 
@@ -63,7 +63,6 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
 
         if (editingApp) {
           // Update existing
-          const { updateDoc, doc } = await import("firebase/firestore");
           await updateDoc(doc(db, "apps", editingApp.id), {
             url: config.url,
             appName: config.appName,

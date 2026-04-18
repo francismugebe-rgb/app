@@ -24,6 +24,7 @@
         "packageId": { "type": "string" },
         "iconUrl": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "building", "success", "error"] },
+        "signingType": { "type": "string", "enum": ["auto", "manual"] },
         "downloadUrl": { "type": "string" },
         "createdAt": { "type": "string", "description": "Timestamp" },
         "updatedAt": { "type": "string", "description": "Timestamp" }
