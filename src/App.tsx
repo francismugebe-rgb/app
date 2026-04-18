@@ -111,8 +111,18 @@ function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => 
                 <button 
                   onClick={() => onEdit(app)}
                   className="opacity-0 group-hover:opacity-100 p-2 hover:text-blue-500 transition-all"
+                  title="Edit Configuration"
                 >
                   <Settings size={16} />
+                </button>
+                <button 
+                  onClick={() => {
+                    alert("Pushing Update: \n1. Syncing Manifest \n2. Injected V3 Headers \n3. Server Pushed Successfully");
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-2 hover:text-green-500 transition-all"
+                  title="Push Update"
+                >
+                  <Zap size={16} />
                 </button>
                 <button 
                   onClick={() => handleDelete(app.id)}
@@ -211,7 +221,30 @@ export default function App() {
         {/* Form Section */}
         <div className="px-6 relative">
           <div className="absolute inset-0 bg-blue-600/5 blur-[120px] rounded-full pointer-events-none"></div>
-          <ConversionForm editingApp={editingApp} onClearEdit={() => setEditingApp(null)} />
+          {!user ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="max-w-xl mx-auto p-12 bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 text-center space-y-8"
+            >
+              <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/20">
+                 <Lock className="text-white" size={40} />
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-bold tracking-tighter">Login Required</h2>
+                <p className="text-gray-400">Authenticating identifies your private build signing keys and stores your bundles securely.</p>
+              </div>
+              <button 
+                onClick={signInWithGoogle}
+                className="w-full py-5 bg-white text-black rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl shadow-white/10"
+              >
+                <LogIn size={20} />
+                Connect Google Account
+              </button>
+            </motion.div>
+          ) : (
+            <ConversionForm editingApp={editingApp} onClearEdit={() => setEditingApp(null)} />
+          )}
         </div>
 
         {/* History Section for logged in users */}

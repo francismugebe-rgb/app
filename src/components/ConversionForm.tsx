@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Globe, Smartphone, Package, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock, AlertCircle, Link as LinkIcon } from "lucide-react";
+import { Globe, Smartphone, Package, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock, AlertCircle, Link as LinkIcon, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
@@ -208,10 +208,37 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                   <Lock size={20} />
                   Sign in to Build APK
                 </button>
+              ) : editingApp ? (
+                <div className="flex flex-col gap-3">
+                  <button
+                    type="submit"
+                    disabled={status === "building" || status === "signing" || status === "extracting"}
+                    className="w-full py-5 bg-blue-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-500 transition-all active:scale-95 shadow-xl shadow-blue-500/20"
+                  >
+                    <Zap size={20} />
+                    Push Build Update
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onClearEdit) onClearEdit();
+                      setConfig({
+                        url: "",
+                        appName: "",
+                        packageId: "",
+                        iconUrl: "https://picsum.photos/seed/placeholder/512/512",
+                        signingType: "auto",
+                      });
+                    }}
+                    className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+                  >
+                    Cancel Editing
+                  </button>
+                </div>
               ) : (
                 <button
                   type="submit"
-                  disabled={status === "building" || status === "extracting"}
+                  disabled={status === "building" || status === "signing" || status === "extracting"}
                   className={`w-full py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${
                     status === "building" 
                       ? "bg-blue-600/50 cursor-not-allowed opacity-50" 
