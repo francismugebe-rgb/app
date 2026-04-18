@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings, Upload, Image as ImageIcon, Palette, Eye, Terminal, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { QRCodeSVG } from "qrcode.react";
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
 import { useAuth } from "../hooks/useAuth";
@@ -771,43 +772,58 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     </div>
                   </div>
                   
-                  <div className="space-y-4">
-                    <div className="p-6 bg-white/5 border border-white/10 rounded-[2.5rem] text-left">
-                       <p className="text-[10px] text-blue-500 font-black uppercase mb-3 tracking-widest flex items-center gap-2">
-                         <Settings size={14} /> Worker Output
-                       </p>
-                       <code className="text-[10px] text-gray-500 block font-mono space-y-1 overflow-hidden">
-                         {buildLogs.slice(-3).map((log, i) => (
-                            <div key={i} className="truncate">
-                               {log.startsWith('SUCCESS') ? '✅ ' : log.startsWith('REJECTED') ? '❌ ' : '[OK] '} 
-                               {log}
-                            </div>
-                         ))}
-                         {!buildLogs.length && (
-                           <>
-                             [OK] Splashing: {config.splashColor}<br/>
-                             [OK] Signature: V3 Secure<br/>
-                             [OK] Digest: {Math.random().toString(16).substring(2, 10).toUpperCase()}
-                           </>
-                         )}
-                       </code>
+                   <div className="space-y-4">
+                    <div className="p-6 bg-white/5 border border-white/10 rounded-[2.5rem] flex flex-col items-center gap-6">
+                       <div className="text-center space-y-2">
+                          <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest border-b border-blue-500/20 pb-1">Scan to Install</p>
+                          <p className="text-[8px] text-gray-500 uppercase font-bold">Direct Mobile Handover</p>
+                       </div>
+                       
+                       <div className="p-4 bg-white rounded-3xl shadow-3xl shadow-blue-500/20 flex items-center justify-center">
+                          <QRCodeSVG 
+                            value={result?.downloadUrl ? `${window.location.origin}${result.downloadUrl}` : window.location.href}
+                            size={140}
+                            bgAlpha={0}
+                            fgColor="#000000"
+                            includeMargin={false}
+                          />
+                       </div>
+
+                       <div className="w-full space-y-3">
+                          <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                            <Settings size={14} /> Worker Output
+                          </p>
+                          <code className="text-[10px] text-gray-400 block font-mono space-y-1 overflow-hidden p-4 bg-black/40 rounded-2xl border border-white/5">
+                            {buildLogs.slice(-3).map((log, i) => (
+                               <div key={i} className="truncate">
+                                  {log.startsWith('SUCCESS') ? '✅ ' : log.startsWith('REJECTED') ? '❌ ' : '[OK] '} 
+                                  {log}
+                               </div>
+                            ))}
+                            {!buildLogs.length && (
+                              <div className="text-blue-500">READY FOR DEPLOYMENT</div>
+                            )}
+                          </code>
+                       </div>
                     </div>
 
-                    <a 
-                      href={result?.downloadUrl || "#"}
-                      className="w-full py-6 bg-blue-600 text-white font-black rounded-[1.5rem] flex items-center justify-center gap-4 hover:bg-blue-500 transition-all transform hover:-translate-y-1 shadow-3xl shadow-blue-600/40 text-sm uppercase tracking-widest"
-                    >
-                      <Download size={22} strokeWidth={3} />
-                      Download APK
-                    </a>
-                  </div>
+                    <div className="flex flex-col gap-3">
+                      <a 
+                        href={result?.downloadUrl || "#"}
+                        className="w-full py-6 bg-blue-600 text-white font-black rounded-[1.5rem] flex items-center justify-center gap-4 hover:bg-blue-500 transition-all transform hover:-translate-y-1 shadow-3xl shadow-blue-600/40 text-sm uppercase tracking-widest"
+                      >
+                        <Download size={22} strokeWidth={3} />
+                        Download APK
+                      </a>
 
-                  <button 
-                    onClick={() => { setStatus("idle"); setStep(1); }}
-                    className="text-[10px] text-gray-600 hover:text-white transition-colors font-black uppercase tracking-widest border-b border-gray-800 pb-1"
-                  >
-                    Start New Project
-                  </button>
+                      <button 
+                        onClick={() => { setStatus("idle"); setStep(1); }}
+                        className="w-full py-4 bg-white/5 border border-white/10 text-[10px] text-gray-500 hover:text-white transition-all font-black uppercase tracking-[0.2em] rounded-2xl"
+                      >
+                        Start New Project
+                      </button>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
