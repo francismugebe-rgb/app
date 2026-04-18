@@ -33,6 +33,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
   });
 
   const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
@@ -65,12 +66,19 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
     if (!config.url || !config.appName) return;
 
     setStatus("building");
+    setErrorMessage(null);
     try {
       const buildRes = await fetch("/api/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...config, userId: user.uid }),
       });
+      
+      if (!buildRes.ok) {
+        const errorText = await buildRes.text();
+        throw new Error(errorText || `Network error: ${buildRes.status}`);
+      }
+
       const data = await buildRes.json();
       
       if (data.success) {
@@ -104,10 +112,12 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         setResult({ ...data, downloadUrl: `/api/download/${data.buildId}` });
         setStatus("success");
       } else {
+        setErrorMessage(data.message || "The build worker rejected the configuration.");
         setStatus("error");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setErrorMessage(err.message || "An unexpected error occurred during build serialization.");
       setStatus("error");
     }
   };
@@ -664,7 +674,12 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
           className="mt-8 p-6 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center gap-4 text-red-500"
         >
           <AlertCircle size={28} />
-          <p className="text-sm font-bold tracking-tight">An error occurred during build serialization. The Worker timed out. Please retry deployment.</p>
+          <div className="space-y-1">
+             <p className="text-sm font-bold tracking-tight">Build Dispatch Failed</p>
+             <p className="text-[10px] font-medium opacity-80 leading-relaxed uppercase tracking-widest italic">
+               {errorMessage || "The Worker timed out. Please retry deployment."}
+             </p>
+          </div>
         </motion.div>
       )}
 

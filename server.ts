@@ -26,7 +26,8 @@ async function startServer() {
     console.error("[CRITICAL] Dist directory not found. Please run 'npm run build' first.");
   }
 
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // Health Check
   app.get("/api/ping", (req, res) => {
