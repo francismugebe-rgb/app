@@ -13,10 +13,14 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3003;
   const isProd = process.env.NODE_ENV === "production";
-  const distPath = path.resolve(__dirname, "dist");
+  
+  // Use absolute path relative to the root public_html directory
+  const rootDir = process.cwd();
+  const distPath = path.resolve(rootDir, "dist");
 
-  console.log(`[INIT] Starting in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
-  console.log(`[INIT] Dist path: ${distPath}`);
+  console.log(`[INIT] Environment: ${process.env.NODE_ENV}`);
+  console.log(`[INIT] Root: ${rootDir}`);
+  console.log(`[INIT] Dist: ${distPath}`);
 
   if (isProd && !fs.existsSync(distPath)) {
     console.error("[CRITICAL] Dist directory not found. Please run 'npm run build' first.");
