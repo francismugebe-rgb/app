@@ -176,8 +176,29 @@ function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => 
 export default function App() {
   const { user, loading } = useAuth();
   const [editingApp, setEditingApp] = useState<any>(null);
+
+  useEffect(() => {
+    console.log("[Web2App] Auth state:", { loading, hasUser: !!user });
+    
+    // Fallback in case auth listener hangs at terminal loading
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn("[Web2App] Auth listener timed out. Proceeding...");
+        // This is a safety valve for "blank page" issues in restricted networks
+      }
+    }, 8000);
+    
+    return () => clearTimeout(timer);
+  }, [loading, user]);
   
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">Waking Build Servers...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-blue-500 selection:text-white">

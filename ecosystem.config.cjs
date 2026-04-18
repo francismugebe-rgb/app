@@ -4,6 +4,7 @@ module.exports = {
       name: "ray-app",
       script: "tsx",
       args: "server.ts",
+      cwd: "/home/ray.styni.com/public_html",
       env_production: {
         NODE_ENV: "production",
         PORT: 3003
