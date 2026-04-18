@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts",
+    "dev": "PORT=3000 tsx server.ts",
     "build": "vite build",
-    "start": "NODE_ENV=production tsx server.ts",
+    "start": "NODE_ENV=production PORT=3003 tsx server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
