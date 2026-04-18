@@ -6,10 +6,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  Package, Smartphone, Zap, Shield, 
+  Package as PackageIcon, Smartphone, Zap, Shield, 
   Smartphone as Phone, Link as LinkIcon, 
-  Download, LogIn, LogOut, History, 
-  Plus, Settings, ExternalLink, Trash2
+  Download, LogIn, LogOut, History as HistoryIcon, 
+  Plus, Settings, ExternalLink, Trash2,
+  Lock as PadlockIcon
 } from "lucide-react";
 import { collection, query, where, onSnapshot, doc, deleteDoc, orderBy } from "firebase/firestore";
 import { signInWithGoogle, auth, db } from "./lib/firebase";
@@ -22,7 +23,7 @@ function Navbar({ user }: { user: any }) {
     <nav className="fixed top-0 inset-x-0 z-50 p-6 flex justify-between items-center max-w-7xl mx-auto backdrop-blur-md bg-black/20 border-b border-white/5">
       <div className="flex items-center gap-2">
         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <Package className="text-white" size={24} />
+          <PackageIcon className="text-white" size={24} />
         </div>
         <span className="text-xl font-bold tracking-tight">Web2App</span>
       </div>
@@ -85,7 +86,7 @@ function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => 
     <div className="max-w-7xl mx-auto px-6 mt-32 space-y-10">
       <div className="flex items-center justify-between border-b border-white/5 pb-6">
         <div className="flex items-center gap-3">
-          <History className="text-blue-500" />
+          <HistoryIcon className="text-blue-500" />
           <h2 className="text-2xl font-bold">Build History</h2>
         </div>
         <div className="text-xs font-mono text-gray-500">{apps.length} BUNDLES ARCHIVED</div>
@@ -249,7 +250,7 @@ export default function App() {
               className="max-w-xl mx-auto p-12 bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 text-center space-y-8"
             >
               <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/20">
-                 <Lock className="text-white" size={40} />
+                 <PadlockIcon className="text-white" size={40} />
               </div>
               <div className="space-y-3">
                 <h2 className="text-3xl font-bold tracking-tighter">Login Required</h2>
@@ -278,7 +279,7 @@ export default function App() {
         {/* Footer */}
         <footer className="max-w-7xl mx-auto mt-20 px-6 mb-10 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-gray-500">
            <div className="flex items-center gap-2">
-            <Package size={20} />
+            <PackageIcon size={20} />
             <span className="font-bold text-white">Web2App</span>
            </div>
            <div className="flex gap-8">

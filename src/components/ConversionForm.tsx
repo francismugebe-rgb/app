@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Globe, Smartphone, Package, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock, AlertCircle, Link as LinkIcon, Zap } from "lucide-react";
+import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
@@ -204,7 +204,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                   onClick={signInWithGoogle}
                   className="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl shadow-white/5"
                 >
-                  <Lock size={20} />
+                  <PadlockIcon size={20} />
                   Sign in to Build APK
                 </button>
               ) : editingApp ? (
@@ -275,7 +275,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                       {status === 'signing' ? <Lock className="text-blue-500" size={32} /> : <Package className="text-blue-500" size={32} />}
+                       {status === 'signing' ? <PadlockIcon className="text-blue-500" size={32} /> : <PackageIcon className="text-blue-500" size={32} />}
                     </div>
                   </div>
                   <div className="space-y-2">
