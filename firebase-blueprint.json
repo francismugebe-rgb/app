@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with basic info and settings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["userId", "email", "createdAt"]
+    },
+    "AppPackage": {
+      "title": "App Package",
+      "description": "Information about a converted website to app package",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "url": { "type": "string" },
+        "appName": { "type": "string" },
+        "packageId": { "type": "string" },
+        "iconUrl": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "building", "success", "error"] },
+        "downloadUrl": { "type": "string" },
+        "createdAt": { "type": "string", "description": "Timestamp" },
+        "updatedAt": { "type": "string", "description": "Timestamp" }
+      },
+      "required": ["userId", "url", "appName", "packageId", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/apps/{appId}": {
+      "schema": "AppPackage",
+      "description": "Converted application packages"
+    }
+  }
+}

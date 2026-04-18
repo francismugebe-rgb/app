@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // User Validation
+    function isValidUser(data) {
+      return data.userId == request.auth.uid &&
+             data.email is string &&
+             data.email.size() <= 256 &&
+             data.createdAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']) &&
+                      incoming().userId == existing().userId;
+    }
+
+    // App Package Validation
+    function isValidApp(data) {
+      return data.userId == request.auth.uid &&
+             data.url is string && data.url.size() <= 1024 &&
+             data.appName is string && data.appName.size() <= 100 &&
+             data.packageId is string && data.packageId.size() <= 128 &&
+             data.status in ['pending', 'building', 'success', 'error'] &&
+             data.createdAt == request.time;
+    }
+
+    match /apps/{appId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidApp(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && (
+        // Action: User updates metadata
+        (incoming().diff(existing()).affectedKeys().hasOnly(['appName', 'url', 'updatedAt']) && 
+         incoming().updatedAt == request.time) ||
+        // Action: System/User updates status/downloadUrl after build
+        (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'downloadUrl', 'updatedAt']) &&
+         incoming().updatedAt == request.time)
+      );
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}

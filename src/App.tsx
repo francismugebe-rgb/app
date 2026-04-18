@@ -3,58 +3,188 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from "motion/react";
-import { Package, Smartphone, Zap, Shield, Smartphone as Phone, Link as LinkIcon, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { 
+  Package, Smartphone, Zap, Shield, 
+  Smartphone as Phone, Link as LinkIcon, 
+  Download, LogIn, LogOut, History, 
+  Plus, Settings, ExternalLink, Trash2
+} from "lucide-react";
+import { collection, query, where, onSnapshot, doc, deleteDoc, orderBy } from "firebase/firestore";
+import { signInWithGoogle, auth, db } from "./lib/firebase";
+import { useAuth } from "./hooks/useAuth";
 import ConversionForm from "./components/ConversionForm";
+import AdMobBanner from "./components/AdMobBanner";
 
-function Navbar() {
+function Navbar({ user }: { user: any }) {
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 p-6 flex justify-between items-center max-w-7xl mx-auto backdrop-blur-sm bg-black/10">
+    <nav className="fixed top-0 inset-x-0 z-50 p-6 flex justify-between items-center max-w-7xl mx-auto backdrop-blur-md bg-black/20 border-b border-white/5">
       <div className="flex items-center gap-2">
-        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
           <Package className="text-white" size={24} />
         </div>
         <span className="text-xl font-bold tracking-tight">Web2App</span>
       </div>
-      <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
-        <a href="#" className="hover:text-white transition-colors">How it works</a>
-        <a href="#" className="hover:text-white transition-colors">Pricing</a>
-        <a href="#" className="hover:text-white transition-colors">Docs</a>
+      
+      <div className="flex items-center gap-4">
+        {user ? (
+          <div className="flex items-center gap-3">
+             <div className="hidden md:flex flex-col items-end text-right">
+                <span className="text-sm font-medium">{user.displayName}</span>
+                <span className="text-[10px] text-gray-500 uppercase tracking-widest">Premium Plan</span>
+             </div>
+             <img src={user.photoURL} alt="Profile" className="w-10 h-10 rounded-full border border-white/10" />
+             <button 
+              onClick={() => auth.signOut()}
+              className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-all"
+             >
+                <LogOut size={20} />
+             </button>
+          </div>
+        ) : (
+          <button 
+            onClick={signInWithGoogle}
+            className="bg-white text-black hover:bg-gray-200 px-6 py-2.5 rounded-full text-sm font-bold flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-white/5"
+          >
+            <LogIn size={18} />
+            Sign In
+          </button>
+        )}
       </div>
-      <button className="bg-white/5 hover:bg-white/10 px-6 py-2 rounded-full border border-white/10 text-sm font-medium transition-all">
-        Sign In
-      </button>
     </nav>
   );
 }
 
-function FeatureCard({ icon: Icon, title, description }: { icon: any, title: string, description: string }) {
+function AppHistory({ userId, onEdit }: { userId: string, onEdit: (app: any) => void }) {
+  const [apps, setApps] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "apps"), 
+      where("userId", "==", userId),
+      orderBy("createdAt", "desc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setApps(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [userId]);
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this build?")) {
+      await deleteDoc(doc(db, "apps", id));
+    }
+  };
+
+  if (loading) return null;
+  if (apps.length === 0) return null;
+
   return (
-    <div className="p-6 bg-white/5 border border-white/10 rounded-3xl space-y-4">
-      <div className="w-12 h-12 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center">
-        <Icon size={24} />
+    <div className="max-w-7xl mx-auto px-6 mt-32 space-y-10">
+      <div className="flex items-center justify-between border-b border-white/5 pb-6">
+        <div className="flex items-center gap-3">
+          <History className="text-blue-500" />
+          <h2 className="text-2xl font-bold">Build History</h2>
+        </div>
+        <div className="text-xs font-mono text-gray-500">{apps.length} BUNDLES ARCHIVED</div>
       </div>
-      <h3 className="text-xl font-semibold">{title}</h3>
-      <p className="text-gray-400 leading-relaxed text-sm">{description}</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {apps.map((app) => (
+          <motion.div 
+            layout
+            key={app.id}
+            className="group p-6 bg-white/5 border border-white/10 rounded-3xl hover:border-blue-500/50 transition-all flex flex-col gap-6"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex gap-4">
+                <img src={app.iconUrl} className="w-14 h-14 rounded-2xl shadow-xl flex-shrink-0" alt="" />
+                <div>
+                   <h3 className="font-bold text-lg leading-tight">{app.appName}</h3>
+                   <p className="text-xs text-blue-500 font-mono mt-1">{app.packageId}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => onEdit(app)}
+                  className="opacity-0 group-hover:opacity-100 p-2 hover:text-blue-500 transition-all"
+                >
+                  <Settings size={16} />
+                </button>
+                <button 
+                  onClick={() => handleDelete(app.id)}
+                  className="opacity-0 group-hover:opacity-100 p-2 hover:text-red-500 transition-all"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+               <div className="p-3 bg-black/20 rounded-xl space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">Status</span>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${app.status === 'success' ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'}`}></div>
+                    <span className="text-xs font-medium capitalize">{app.status}</span>
+                  </div>
+               </div>
+               <div className="p-3 bg-black/20 rounded-xl space-y-1">
+                  <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tighter">OS Target</span>
+                  <div className="text-xs font-medium">Android 6.0+</div>
+               </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <a 
+                href={app.downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 bg-white text-black py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-200 transition-all"
+              >
+                <Download size={16} />
+                Download
+              </a>
+              <a 
+                href={app.url}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all"
+              >
+                <ExternalLink size={18} />
+              </a>
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
 
 export default function App() {
+  const { user, loading } = useAuth();
+  const [editingApp, setEditingApp] = useState<any>(null);
+  
+  if (loading) return null;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-blue-500 selection:text-white">
-      <Navbar />
+      <Navbar user={user} />
       
-      <main className="pt-32 pb-20 px-6">
+      <main className="pt-32 pb-20">
+        <AdMobBanner />
+
         {/* Hero Section */}
-        <div className="max-w-7xl mx-auto text-center space-y-8 mb-20">
+        <div className="max-w-7xl mx-auto px-6 text-center space-y-8 mb-20 mt-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-xs font-bold uppercase tracking-widest"
           >
             <Zap size={14} />
-            Android Build Service
+            Android 6.0 - 14.0 Supported
           </motion.div>
           
           <motion.h1 
@@ -63,8 +193,8 @@ export default function App() {
             transition={{ delay: 0.1 }}
             className="text-5xl md:text-8xl font-bold tracking-tighter leading-[0.9]"
           >
-            Websites into <br />
-            <span className="text-blue-600">Native Apps.</span>
+            Digital Web into <br />
+            <span className="text-blue-600">Enterprise Apps.</span>
           </motion.h1>
           
           <motion.p 
@@ -73,67 +203,26 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto text-gray-400 text-lg md:text-xl font-medium"
           >
-            The easiest way to package your website as a professional APK. 
-            No coding required. Play Store ready.
+            Professional APK delivery. Signed for the Play Store. 
+            Automated logo extraction. Private build servers.
           </motion.p>
         </div>
 
         {/* Form Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <ConversionForm />
-        </motion.div>
-
-        {/* Features Section */}
-        <div className="max-w-7xl mx-auto mt-32 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <FeatureCard 
-            icon={Zap}
-            title="Fast Builds"
-            description="Package your website in under 60 seconds with our optimized build pipeline."
-          />
-          <FeatureCard 
-            icon={Smartphone}
-            title="Native Experience"
-            description="Complete WebView optimization with pull-to-refresh and native splash screens."
-          />
-          <FeatureCard 
-            icon={Shield}
-            title="Store Ready"
-            description="We handle the signing and manifest generation so you can publish to Play Store immediately."
-          />
+        <div className="px-6 relative">
+          <div className="absolute inset-0 bg-blue-600/5 blur-[120px] rounded-full pointer-events-none"></div>
+          <ConversionForm editingApp={editingApp} onClearEdit={() => setEditingApp(null)} />
         </div>
 
-        {/* How it works */}
-        <div className="max-w-4xl mx-auto mt-40 space-y-20">
-          <div className="text-center space-y-4">
-             <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Three steps to mobile.</h2>
-             <p className="text-gray-400">Going from web to app has never been this simple.</p>
-          </div>
+        {/* History Section for logged in users */}
+        {user && <AppHistory userId={user.uid} onEdit={setEditingApp} />}
 
-          <div className="space-y-12">
-            {[
-              { step: "01", icon: LinkIcon, text: "Input your mobile-optimized website URL." },
-              { step: "02", icon: Phone, text: "Customize icon, splash screen, and package settings." },
-              { step: "03", icon: Download, text: "Download your signed, production-ready APK." }
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-start gap-8">
-                 <span className="text-4xl font-bold text-white/10 font-mono pt-1">{item.step}</span>
-                 <div className="flex-1 pb-12 border-b border-white/5 flex items-center gap-6">
-                    <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center shrink-0">
-                      <item.icon className="text-blue-500" size={28} />
-                    </div>
-                    <p className="text-xl font-medium text-gray-200">{item.text}</p>
-                 </div>
-              </div>
-            ))}
-          </div>
+        <div className="max-w-7xl mx-auto px-6 mt-40 pt-20 border-t border-white/5">
+           <AdMobBanner unitId="ca-app-pub-3940256099942544/2247696110" />
         </div>
 
         {/* Footer */}
-        <footer className="max-w-7xl mx-auto mt-40 pt-20 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-gray-500">
+        <footer className="max-w-7xl mx-auto mt-20 px-6 mb-10 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-gray-500">
            <div className="flex items-center gap-2">
             <Package size={20} />
             <span className="font-bold text-white">Web2App</span>
@@ -143,7 +232,7 @@ export default function App() {
              <a href="#" className="hover:text-white transition-colors">Privacy</a>
              <a href="#" className="hover:text-white transition-colors">Contact</a>
            </div>
-           <p>© 2026 Web2App Converter. Powered by AI Studio.</p>
+           <p>© 2026 Web2App Pro. All rights reserved.</p>
         </footer>
       </main>
     </div>

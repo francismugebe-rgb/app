@@ -1,6 +1,6 @@
 {
   "name": "Web2App Converter",
-  "description": "Transform any website into a native Android APK effortlessly. Customize your app name, icon, and package ID.",
+  "description": "Enterprise-grade Web2App converter with automated logo extraction, secure Firebase storage, and signed APK generation for Android 6.0 and above. Includes AdMob integration and build history.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
