@@ -608,7 +608,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-white flex flex-col relative"
+                                className="absolute inset-0 bg-white flex flex-col overflow-hidden"
                               >
                                  {/* Status Bar */}
                                  <div className="h-6 bg-white/90 backdrop-blur-md flex justify-between px-6 items-center pt-2 absolute top-0 inset-x-0 z-50">
@@ -620,7 +620,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                  </div>
                                  
                                  {/* Site Container */}
-                                 <div className="flex-1 relative pt-6 flex flex-col">
+                                 <div className="flex-1 relative flex flex-col pt-6 bg-gray-50 h-full w-full">
                                      {config.navLayout === 'top' && (
                                        <div className="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-4 overflow-hidden relative z-40">
                                           <div className="h-4 w-12 bg-blue-500 rounded-full flex-shrink-0"></div>
@@ -629,11 +629,11 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                        </div>
                                      )}
                                      
-                                     <div className="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden relative">
+                                     <div className="flex-1 bg-white flex items-center justify-center overflow-hidden relative h-full w-full">
                                         {config.url ? (
                                           <iframe 
                                             src={config.url} 
-                                            className="w-full h-full border-none pointer-events-none" 
+                                            className="w-full h-full border-none pointer-events-none absolute inset-0 bg-white" 
                                             title="Site Preview"
                                           />
                                         ) : (
