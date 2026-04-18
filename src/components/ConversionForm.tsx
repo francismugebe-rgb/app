@@ -624,52 +624,63 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="absolute inset-0 bg-white flex flex-col"
+                                className="absolute inset-0 bg-white flex flex-col relative"
                               >
                                  {/* Status Bar */}
-                                 <div className="h-6 bg-transparent flex justify-between px-6 items-center pt-2">
-                                    <span className="text-[9px] font-bold text-black/40">9:41</span>
+                                 <div className="h-6 bg-white/90 backdrop-blur-md flex justify-between px-6 items-center pt-2 absolute top-0 inset-x-0 z-50">
+                                    <span className="text-[9px] font-bold text-black/60">9:41</span>
                                     <div className="flex gap-1 items-center">
-                                       {config.navLayout === 'drawer' && <div className="w-3 h-0.5 bg-black/20 rounded-full"></div>}
-                                       <div className="w-3 h-3 bg-black/40 rounded-[2px]"></div>
+                                       {config.navLayout === 'drawer' && <div className="w-3 h-0.5 bg-black/40 rounded-full"></div>}
+                                       <div className="w-3 h-3 bg-black/60 rounded-[2px]"></div>
                                     </div>
                                  </div>
                                  
-                                 {/* Mock Content */}
-                                 <div className="flex-1 mt-4 px-4 space-y-4">
+                                 {/* Site Container */}
+                                 <div className="flex-1 relative pt-6 flex flex-col">
                                      {config.navLayout === 'top' && (
-                                       <div className="flex gap-4 border-b border-gray-100 pb-2">
-                                          <div className="h-2 w-8 bg-blue-500 rounded-full"></div>
-                                          <div className="h-2 w-8 bg-gray-100 rounded-full"></div>
-                                          <div className="h-2 w-8 bg-gray-100 rounded-full"></div>
+                                       <div className="h-10 bg-white border-b border-gray-100 flex items-center px-4 gap-4 overflow-hidden relative z-40">
+                                          <div className="h-4 w-12 bg-blue-500 rounded-full flex-shrink-0"></div>
+                                          <div className="h-4 w-12 bg-gray-100 rounded-full flex-shrink-0"></div>
+                                          <div className="h-4 w-12 bg-gray-100 rounded-full flex-shrink-0"></div>
                                        </div>
                                      )}
-                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                        <img src={config.iconUrl} className="w-10 h-10 rounded-xl" alt="" />
-                                        <div className="text-left">
-                                           <h5 className="text-[10px] font-black text-black">{config.appName || "Application"}</h5>
-                                           <p className="text-[8px] text-blue-500 font-bold opacity-0">Hidden Endpoint</p>
-                                        </div>
-                                     </div>
-                                     <div className="h-24 w-full bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-end p-3 gap-2">
-                                        <div className="h-2 w-2/3 bg-gray-200 rounded-full"></div>
-                                        <div className="h-1.5 w-1/2 bg-gray-100 rounded-full"></div>
-                                     </div>
-                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="h-20 bg-gray-50 rounded-2xl border border-gray-100 italic flex items-center justify-center text-[8px] text-gray-300">Feature Slot</div>
-                                        <div className="h-20 bg-gray-50 rounded-2xl border border-gray-100 italic flex items-center justify-center text-[8px] text-gray-300">Feature Slot</div>
+                                     
+                                     <div className="flex-1 bg-gray-50 flex items-center justify-center overflow-hidden relative">
+                                        {config.url ? (
+                                          <iframe 
+                                            src={config.url} 
+                                            className="w-full h-full border-none pointer-events-none" 
+                                            title="Site Preview"
+                                          />
+                                        ) : (
+                                          <div className="text-center space-y-2 p-8 opacity-20 group-hover:opacity-40 transition-opacity">
+                                             <Globe size={48} className="mx-auto text-blue-500" />
+                                             <p className="text-[10px] font-black uppercase tracking-widest">Connect Site Endpoint</p>
+                                          </div>
+                                        )}
+                                        {/* Overlay to prevent interaction in preview */}
+                                        <div className="absolute inset-0 z-10"></div>
                                      </div>
                                  </div>
 
                                  {/* Bottom Bar */}
                                  {config.navLayout === 'tabs' && (
-                                   <div className="h-12 border-t border-gray-100 flex justify-around items-center px-4 mb-2">
-                                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                                      <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
-                                      <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
+                                   <div className="h-14 bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-around items-center px-4 mb-2 relative z-50">
+                                      <div className="flex flex-col items-center gap-1">
+                                         <div className="w-5 h-5 bg-blue-500 rounded-lg"></div>
+                                         <div className="w-4 h-1 bg-blue-500 rounded-full"></div>
+                                      </div>
+                                      <div className="flex flex-col items-center gap-1">
+                                         <div className="w-5 h-5 bg-gray-100 rounded-lg"></div>
+                                         <div className="w-4 h-1 bg-gray-100 rounded-full"></div>
+                                      </div>
+                                      <div className="flex flex-col items-center gap-1">
+                                         <div className="w-5 h-5 bg-gray-100 rounded-lg"></div>
+                                         <div className="w-4 h-1 bg-gray-100 rounded-full"></div>
+                                      </div>
                                    </div>
                                  )}
-                                 {config.navLayout === 'none' && <div className="h-4"></div>}
+                                 {config.navLayout === 'none' && <div className="h-6 bg-white absolute bottom-0 inset-x-0 z-50"></div>}
                               </motion.div>
                             )}
                           </AnimatePresence>
