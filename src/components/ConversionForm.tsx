@@ -37,6 +37,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
   const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [buildLogs, setBuildLogs] = useState<string[]>([]);
 
   useEffect(() => {
     if (editingApp) {
@@ -85,36 +86,64 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
       const data = await buildRes.json();
       
       if (data.success) {
-        await new Promise(r => setTimeout(r, 2000));
-        setStatus("signing");
-        await new Promise(r => setTimeout(r, 2000));
+        const buildId = data.buildId;
+        
+        // Start Polling Loop
+        const pollStatus = async () => {
+          try {
+            const statusRes = await fetch(`/api/build-status/${buildId}`);
+            const statusData = await statusRes.json();
+            
+            if (statusData.success) {
+              setBuildLogs(statusData.logs || []);
+              
+              if (statusData.status === "success") {
+                const buildData = {
+                  userId: user.uid,
+                  url: config.url,
+                  appName: config.appName,
+                  packageId: config.packageId,
+                  iconUrl: config.iconUrl,
+                  signingType: config.signingType,
+                  splashColor: config.splashColor,
+                  showSplashTitle: config.showSplashTitle,
+                  navLayout: config.navLayout,
+                  status: "success",
+                  downloadUrl: `/api/download/${buildId}`,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp(),
+                  isPrivate: true
+                };
 
-        const buildData = {
-          userId: user.uid,
-          url: config.url,
-          appName: config.appName,
-          packageId: config.packageId,
-          iconUrl: config.iconUrl,
-          signingType: config.signingType,
-          splashColor: config.splashColor,
-          showSplashTitle: config.showSplashTitle,
-          navLayout: config.navLayout,
-          status: "success",
-          downloadUrl: `/api/download/${data.buildId}`,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          isPrivate: true
+                if (editingApp) {
+                  await updateDoc(doc(db, "apps", editingApp.id), buildData);
+                } else {
+                  await addDoc(collection(db, "apps"), buildData);
+                }
+
+                setResult({ ...statusData, downloadUrl: `/api/download/${buildId}` });
+                setStatus("success");
+                return; // Stop polling
+              } else if (statusData.status === "error") {
+                setErrorMessage(statusData.error || "Build worker reported a fatal error.");
+                setStatus("error");
+                return; // Stop polling
+              } else {
+                // Determine UI status based on backend status
+                if (statusData.status === "building") setStatus("building");
+                if (statusData.status === "signing") setStatus("signing");
+                
+                // Continue polling
+                setTimeout(pollStatus, 3000);
+              }
+            }
+          } catch (pollErr) {
+            console.error("Polling error:", pollErr);
+            setTimeout(pollStatus, 5000);
+          }
         };
 
-        if (editingApp) {
-          await updateDoc(doc(db, "apps", editingApp.id), buildData);
-          if (onClearEdit) onClearEdit();
-        } else {
-          await addDoc(collection(db, "apps"), buildData);
-        }
-
-        setResult({ ...data, downloadUrl: `/api/download/${data.buildId}` });
-        setStatus("success");
+        pollStatus();
       } else {
         setErrorMessage(data.message || "The build worker rejected the configuration.");
         setStatus("error");
@@ -549,8 +578,8 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                         className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                        />
                     </div>
-                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest animate-pulse">
-                       {status === 'signing' ? 'Finalizing v3 checksums...' : 'Mapping webview buffers...'}
+                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest animate-pulse truncate px-4">
+                       {buildLogs.length > 0 ? buildLogs[buildLogs.length - 1] : (status === 'signing' ? 'Finalizing v3 checksums...' : 'Mapping webview buffers...')}
                     </p>
                   </div>
                 </motion.div>
@@ -699,9 +728,19 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                          <Settings size={14} /> Worker Output
                        </p>
                        <code className="text-[10px] text-gray-500 block font-mono space-y-1 overflow-hidden">
-                         [OK] Splashing: {config.splashColor}<br/>
-                         [OK] Signature: V3 Secure<br/>
-                         [OK] Digest: {Math.random().toString(16).substring(2, 10).toUpperCase()}
+                         {buildLogs.slice(-3).map((log, i) => (
+                            <div key={i} className="truncate">
+                               {log.startsWith('SUCCESS') ? '✅ ' : log.startsWith('REJECTED') ? '❌ ' : '[OK] '} 
+                               {log}
+                            </div>
+                         ))}
+                         {!buildLogs.length && (
+                           <>
+                             [OK] Splashing: {config.splashColor}<br/>
+                             [OK] Signature: V3 Secure<br/>
+                             [OK] Digest: {Math.random().toString(16).substring(2, 10).toUpperCase()}
+                           </>
+                         )}
                        </code>
                     </div>
 
