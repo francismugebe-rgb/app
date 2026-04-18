@@ -22,11 +22,15 @@ GITHUB_REPO=your_private_repo_name
 ```
 
 ### 3. Build Flow
-The website now uses a **4-Stage Wizard**:
-1. **General Identity**: Basic site URL and App Name.
-2. **Visual Assets**: Review the auto-extracted logo.
-3. **Build Pipeline**: Configure Package ID and Signing Scheme.
-4. **Review & Deploy**: Trigger the secure GitHub Actions worker.
+The website now uses a **5-Stage Enterprise Wizard**:
+1. **General Identity**: Website source and Application naming.
+2. **Branding & Assets**: Custom icon uploading with adaptive mask generation.
+3. **Appearance (Splash)**: Configure splash background colors and dynamic titles.
+4. **Protocol (Pipeline)**: Package ID assignment and RSA-2048 signing protocol.
+5. **Review & Deploy**: Final technical audit before build dispatch.
+
+### 4. Adaptive Device Preview
+The system features a 1:1 mobile emulator that stays active throughout the entire wizard, allowing you to toggle between "Splash" and "Result" views instantly.
 
 ## Deployment
 Run `./deploy.sh` to apply the latest "Smoothened" UI and the GitHub integration.
