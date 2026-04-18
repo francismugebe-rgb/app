@@ -13,6 +13,7 @@ interface AppConfig {
   signingType: "auto" | "manual";
   splashColor: string;
   showSplashTitle: boolean;
+  navLayout: "tabs" | "drawer" | "top" | "none";
 }
 
 export default function ConversionForm({ editingApp, onClearEdit }: { editingApp?: any, onClearEdit?: () => void }) {
@@ -30,6 +31,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
     signingType: "auto",
     splashColor: "#000000",
     showSplashTitle: true,
+    navLayout: "tabs",
   });
 
   const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
@@ -46,6 +48,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         signingType: editingApp.signingType || "auto",
         splashColor: editingApp.splashColor || "#000000",
         showSplashTitle: editingApp.showSplashTitle ?? true,
+        navLayout: editingApp.navLayout || "tabs",
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -95,6 +98,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
           signingType: config.signingType,
           splashColor: config.splashColor,
           showSplashTitle: config.showSplashTitle,
+          navLayout: config.navLayout,
           status: "success",
           downloadUrl: `/api/download/${data.buildId}`,
           createdAt: serverTimestamp(),
@@ -187,7 +191,23 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         
         <div className="grid grid-cols-1 lg:grid-cols-2 relative min-h-[600px]">
           {/* Left Side: Dynamic Step Form */}
-          <div className="p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.02]">
+          <div className="p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.02] relative overflow-hidden">
+             {/* Site Preview Overlay for Step 1 */}
+             {step === 1 && config.url && (
+               <motion.div 
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute inset-x-8 bottom-32 top-1/2 bg-[#050505] rounded-t-3xl border-x border-t border-white/10 z-10 p-2 pt-8"
+               >
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1">
+                     <div className="w-1 h-1 bg-white/20 rounded-full"></div>
+                     <div className="w-1 h-1 bg-white/20 rounded-full"></div>
+                  </div>
+                  <iframe src={config.url} className="w-full h-full rounded-t-xl grayscale opacity-40 pointer-events-none" />
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#050505] to-transparent"></div>
+               </motion.div>
+             )}
+
             <h2 className="text-3xl font-black mb-10 flex items-center gap-4 tracking-tighter italic uppercase text-blue-500">
               {step === 1 && <><Globe className="text-white" size={32} /> Identity</>}
               {step === 2 && <><ImageIcon className="text-white" size={32} /> Assets</>}
@@ -210,19 +230,32 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                       <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Website Endpoint</label>
                       <div className="relative">
                         <input
-                          type="url"
+                          type={config.url ? "password" : "url"}
                           required
                           placeholder="https://your-website.com"
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-14 placeholder:text-gray-700 font-medium"
+                          className={`w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-14 placeholder:text-gray-700 font-medium ${config.url ? 'text-blue-500/50' : ''}`}
                           value={config.url}
                           onChange={(e) => setConfig({ ...config, url: e.target.value })}
                           onBlur={handleUrlBlur}
                         />
                         <LinkIcon className="absolute left-5 top-5 text-gray-500" size={24} />
+                        {config.url && (
+                          <button 
+                            onClick={() => setConfig({...config, url: ""})}
+                            className="absolute right-5 top-5 text-[10px] font-black uppercase text-gray-600 hover:text-white"
+                          >
+                             Clear
+                          </button>
+                        )}
                         {status === "extracting" && (
                           <Loader2 className="absolute right-5 top-5 animate-spin text-blue-500" size={24} />
                         )}
                       </div>
+                      {config.url && (
+                        <p className="text-[10px] font-bold text-green-500/50 uppercase tracking-widest flex items-center gap-2 mt-2">
+                          <Check size={12} /> Endpoint Secured & Hidden
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-3">
@@ -326,6 +359,27 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                          >
                             <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${config.showSplashTitle ? 'left-7' : 'left-1'}`}></div>
                          </button>
+                      </div>
+
+                      <div className="space-y-3">
+                         <label className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] pl-1">Navigation Menu Style</label>
+                         <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { id: "tabs", label: "Bottom Tabs", desc: "Native Android pattern" },
+                              { id: "drawer", label: "Side Drawer", desc: "Hierarchical menu" },
+                              { id: "top", label: "Top Bar", desc: "Categorical scroll" },
+                              { id: "none", label: "Hidden", desc: "Edge-to-edge view" }
+                            ].map(opt => (
+                              <button
+                                key={opt.id}
+                                onClick={() => setConfig({...config, navLayout: opt.id as any})}
+                                className={`p-4 rounded-2xl border text-left transition-all ${config.navLayout === opt.id ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                              >
+                                 <p className="text-[10px] font-black uppercase tracking-tighter">{opt.label}</p>
+                                 <p className="text-[8px] opacity-60 leading-none mt-1">{opt.desc}</p>
+                              </button>
+                            ))}
+                         </div>
                       </div>
 
                       <div className="flex gap-2 p-4 bg-yellow-500/5 rounded-2xl border border-yellow-500/10">
@@ -576,17 +630,25 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                  <div className="h-6 bg-transparent flex justify-between px-6 items-center pt-2">
                                     <span className="text-[9px] font-bold text-black/40">9:41</span>
                                     <div className="flex gap-1 items-center">
+                                       {config.navLayout === 'drawer' && <div className="w-3 h-0.5 bg-black/20 rounded-full"></div>}
                                        <div className="w-3 h-3 bg-black/40 rounded-[2px]"></div>
                                     </div>
                                  </div>
                                  
                                  {/* Mock Content */}
                                  <div className="flex-1 mt-4 px-4 space-y-4">
+                                     {config.navLayout === 'top' && (
+                                       <div className="flex gap-4 border-b border-gray-100 pb-2">
+                                          <div className="h-2 w-8 bg-blue-500 rounded-full"></div>
+                                          <div className="h-2 w-8 bg-gray-100 rounded-full"></div>
+                                          <div className="h-2 w-8 bg-gray-100 rounded-full"></div>
+                                       </div>
+                                     )}
                                      <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-100">
                                         <img src={config.iconUrl} className="w-10 h-10 rounded-xl" alt="" />
                                         <div className="text-left">
                                            <h5 className="text-[10px] font-black text-black">{config.appName || "Application"}</h5>
-                                           <p className="text-[8px] text-blue-500 font-bold">{config.url || "your-site.com"}</p>
+                                           <p className="text-[8px] text-blue-500 font-bold opacity-0">Hidden Endpoint</p>
                                         </div>
                                      </div>
                                      <div className="h-24 w-full bg-gray-50 rounded-2xl border border-gray-100 flex flex-col justify-end p-3 gap-2">
@@ -600,11 +662,14 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                                  </div>
 
                                  {/* Bottom Bar */}
-                                 <div className="h-12 border-t border-gray-100 flex justify-around items-center px-4 mb-2">
-                                    <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                                    <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
-                                    <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
-                                 </div>
+                                 {config.navLayout === 'tabs' && (
+                                   <div className="h-12 border-t border-gray-100 flex justify-around items-center px-4 mb-2">
+                                      <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                                      <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
+                                      <div className="w-4 h-4 bg-gray-100 rounded-full"></div>
+                                   </div>
+                                 )}
+                                 {config.navLayout === 'none' && <div className="h-4"></div>}
                               </motion.div>
                             )}
                           </AnimatePresence>
