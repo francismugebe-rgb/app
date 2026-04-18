@@ -16,7 +16,6 @@ import { collection, query, where, onSnapshot, doc, deleteDoc, orderBy } from "f
 import { signInWithGoogle, auth, db } from "./lib/firebase";
 import { useAuth } from "./hooks/useAuth";
 import ConversionForm from "./components/ConversionForm";
-import AdMobBanner from "./components/AdMobBanner";
 
 function Navbar({ user }: { user: any }) {
   return (
@@ -206,8 +205,6 @@ export default function App() {
       <Navbar user={user} />
       
       <main className="pt-32 pb-20">
-        <AdMobBanner />
-
         {/* Hero Section */}
         <div className="max-w-7xl mx-auto px-6 text-center space-y-8 mb-20 mt-10">
           <motion.div
@@ -271,10 +268,6 @@ export default function App() {
 
         {/* History Section for logged in users */}
         {user && <AppHistory userId={user.uid} onEdit={setEditingApp} />}
-
-        <div className="max-w-7xl mx-auto px-6 mt-40 pt-20 border-t border-white/5">
-           <AdMobBanner unitId="ca-app-pub-3940256099942544/2247696110" />
-        </div>
 
         {/* Footer */}
         <footer className="max-w-7xl mx-auto mt-20 px-6 mb-10 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-sm text-gray-500">
