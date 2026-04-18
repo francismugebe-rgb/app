@@ -94,40 +94,30 @@ async function startServer() {
   app.post("/api/convert", async (req, res) => {
     const { url, appName, packageId, iconUrl, userId, signingType } = req.body;
     
-    // BUILD LOGIC: This would be the entry point for a worker-based build system
-    // We simulate the multi-stage pipeline:
-    // 1. Scraping Site Manifest
-    // 2. Generating Android Assets (Splash, Icons)
-    // 3. Compiling JAVA/Kotlin Bridge
-    // 4. Signing with V3 Scheme
-    
     const buildId = Math.random().toString(36).substring(7);
+    
+    // In a production app, we would:
+    // 1. Create a "pending" build record in Firestore
+    // 2. Trigger a GitHub Action (Private Worker) via Repository Dispatch
+    // 3. GitHub Action updates the status via another API route
+    
+    console.log(`[BUILD] Triggered build ${buildId} for ${url}`);
+    
+    // Simulate initial response to allow UI to show "Connecting..."
+    res.json({
+      success: true,
+      buildId,
+      message: "Initiating Private Build Worker...",
+      status: "queued"
+    });
+  });
 
-    setTimeout(() => {
-      res.json({
-        success: true,
-        message: "APK built with Android 6.0+ compatibility",
-        downloadUrl: `/api/download/${buildId}`,
-        buildInfo: {
-          minSdk: 23,
-          targetSdk: 34,
-          adMobEnabled: true,
-          signed: true,
-          signingMethod: signingType || "Auto-Generated keystore",
-          certificateFingerprint: "SHA-256: 4F:EA:72:...", 
-          packageId: packageId || "com.private.app",
-          features: {
-            autoSplash: true,
-            offlineFallback: true,
-            backNavigation: true,
-            fileUpload: true,
-            downloadManager: true,
-            httpsOnly: true,
-            performanceCache: true
-          }
-        }
-      });
-    }, 4500);
+  // API Route: Build Update (To be called by Private Worker)
+  app.post("/api/build-update", async (req, res) => {
+    const { buildId, status, downloadUrl } = req.body;
+    console.log(`[BUILD UPDATE] ${buildId}: ${status}`);
+    // Update logic would go here
+    res.json({ success: true });
   });
 
   // Vite integration
