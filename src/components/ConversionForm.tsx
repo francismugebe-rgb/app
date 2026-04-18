@@ -37,7 +37,28 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
   const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [progress, setProgress] = useState(0);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
+
+  useEffect(() => {
+    let interval: any;
+    if (status === "building") {
+      setProgress(10);
+      interval = setInterval(() => {
+        setProgress(prev => (prev < 85 ? prev + Math.random() * 2 : prev));
+      }, 1000);
+    } else if (status === "signing") {
+      setProgress(85);
+      interval = setInterval(() => {
+        setProgress(prev => (prev < 98 ? prev + 0.5 : prev));
+      }, 500);
+    } else if (status === "success") {
+      setProgress(100);
+    } else {
+      setProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [status]);
 
   useEffect(() => {
     if (editingApp) {
@@ -576,17 +597,17 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     <div className="space-y-2">
                       <div className="flex justify-between items-end px-1">
                         <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">
-                          {status === 'signing' ? 'Verification' : 'Compiling'}
+                          {status === 'signing' ? 'Security Handshake' : 'Gradle Compiling'}
                         </span>
                         <span className="text-[9px] font-mono text-gray-500">
-                          {status === 'signing' ? '92%' : '48%'}
+                          {Math.floor(progress)}%
                         </span>
                       </div>
                       <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                          <motion.div 
                           initial={{ width: 0 }}
-                          animate={{ width: status === 'signing' ? '92%' : '48%' }}
-                          transition={{ duration: 1, ease: "easeOut" }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ type: "spring", stiffness: 50, damping: 20 }}
                           className="h-full bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
                          />
                       </div>
