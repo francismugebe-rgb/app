@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings, Upload, Image as ImageIcon, Palette, Eye } from "lucide-react";
+import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings, Upload, Image as ImageIcon, Palette, Eye, Terminal, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
@@ -568,19 +568,47 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-2xl font-black tracking-tighter uppercase italic text-white">
-                       {status === 'signing' ? 'Authenticating' : 'Compiling...'}
+                    <h3 className="text-2xl font-black tracking-tighter uppercase italic text-white flex items-center justify-center gap-2">
+                       {status === 'signing' ? <ShieldCheck className="text-blue-500" size={24} /> : <div className="w-5 h-5 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>}
+                       {status === 'signing' ? 'Signing APK' : 'Cloud Build'}
                     </h3>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                       <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: status === 'signing' ? '92%' : '55%' }}
-                        className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                       />
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end px-1">
+                        <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">
+                          {status === 'signing' ? 'Verification' : 'Compiling'}
+                        </span>
+                        <span className="text-[9px] font-mono text-gray-500">
+                          {status === 'signing' ? '92%' : '48%'}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                         <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: status === 'signing' ? '92%' : '48%' }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="h-full bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                         />
+                      </div>
                     </div>
-                    <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest animate-pulse truncate px-4">
-                       {buildLogs.length > 0 ? buildLogs[buildLogs.length - 1] : (status === 'signing' ? 'Finalizing v3 checksums...' : 'Mapping webview buffers...')}
-                    </p>
+
+                    <div className="p-4 bg-black/40 rounded-2xl border border-white/5 text-left font-mono overflow-hidden">
+                       <p className="text-[10px] text-blue-500/80 mb-2 flex items-center gap-2">
+                          <Terminal size={12} /> Live Engine Logs
+                       </p>
+                       <div className="space-y-1 h-20 overflow-y-auto custom-scrollbar">
+                          {buildLogs.length > 0 ? (
+                            buildLogs.map((log, i) => (
+                              <div key={i} className="text-[9px] text-gray-500 flex gap-2">
+                                 <span className="text-gray-700 shrink-0">{i + 1}</span>
+                                 <span className="truncate">{log}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-[9px] text-gray-700 animate-pulse italic">Awaiting build worker heartbeat...</p>
+                          )}
+                       </div>
+                    </div>
                   </div>
                 </motion.div>
               ) : status !== "success" ? (
@@ -768,16 +796,47 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
 
       {status === "error" && (
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 p-6 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center gap-4 text-red-500"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mt-8 overflow-hidden rounded-[2.5rem] bg-red-500/5 border border-red-500/10 flex flex-col md:flex-row relative group"
         >
-          <AlertCircle size={28} />
-          <div className="space-y-1">
-             <p className="text-sm font-bold tracking-tight">Build Dispatch Failed</p>
-             <p className="text-[10px] font-medium opacity-80 leading-relaxed uppercase tracking-widest italic">
-               {errorMessage || "The Worker timed out. Please retry deployment."}
-             </p>
+          <div className="p-8 flex flex-col items-center justify-center bg-red-500/10 border-r border-red-500/10 min-w-[200px] text-center">
+             <AlertCircle size={48} className="text-red-500 mb-4 animate-bounce" />
+             <h4 className="text-xl font-black italic uppercase tracking-tighter text-red-500">Build Reject</h4>
+             <button 
+               onClick={() => setStatus("idle")}
+               className="mt-4 px-6 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase hover:bg-red-400 transition-all font-mono"
+             >
+                Try Again
+             </button>
+          </div>
+          <div className="p-8 flex-1 space-y-4">
+             <div className="space-y-1">
+                <p className="text-sm font-bold text-gray-300">Failure Logic Context</p>
+                <p className="text-[10px] text-red-400 font-mono uppercase font-black">
+                   {errorMessage || "ENGINE_TIMEOUT: Worker did not report finalization within 240s"}
+                </p>
+             </div>
+             
+             <div className="space-y-2">
+                <p className="text-[10px] text-gray-500 font-black flex items-center gap-2 uppercase tracking-widest">
+                   <Terminal size={14} /> Full Execution Stack (Partial)
+                </p>
+                <div className="bg-black/50 p-4 rounded-xl border border-white/5 max-h-40 overflow-y-auto custom-scrollbar font-mono">
+                   {buildLogs.map((log, i) => (
+                     <div key={i} className="text-[9px] text-gray-600 mb-1 border-b border-white/5 pb-1">
+                        {log}
+                     </div>
+                   ))}
+                   {buildLogs.length === 0 && (
+                     <p className="text-[9px] text-gray-700 italic">No logs captured. Check your internet connection or GitHub Action status.</p>
+                   )}
+                </div>
+             </div>
+          </div>
+          
+          <div className="absolute top-4 right-4 group-hover:rotate-45 transition-transform duration-500 opacity-20">
+             <ShieldAlert size={64} className="text-red-500" />
           </div>
         </motion.div>
       )}
@@ -795,6 +854,19 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         }
         .animate-pulse-slow {
            animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.2);
         }
       `}} />
     </div>

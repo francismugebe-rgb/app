@@ -228,7 +228,8 @@ async function startServer() {
            build.logs.push(`SUCCESS: Production APK generated (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
         } else {
            build.status = "error";
-           build.logs.push(`REJECTED: Generated APK is too small (${stats.size} bytes). Execution failed.`);
+           build.error = `REJECTED: Generated APK is too small (${stats.size} bytes). This usually indicates a Gradle compilation failure or empty resource folder.`;
+           build.logs.push(`FATAL: Build yielded an empty or invalid binary. Reverting state.`);
         }
       }
     }
