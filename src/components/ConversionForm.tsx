@@ -191,23 +191,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
         
         <div className="grid grid-cols-1 lg:grid-cols-2 relative min-h-[600px]">
           {/* Left Side: Dynamic Step Form */}
-          <div className="p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.02] relative overflow-hidden">
-             {/* Site Preview Overlay for Step 1 */}
-             {step === 1 && config.url && (
-               <motion.div 
-                initial={{ opacity: 0, y: 100 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-x-8 bottom-32 top-1/2 bg-[#050505] rounded-t-3xl border-x border-t border-white/10 z-10 p-2 pt-8"
-               >
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-1">
-                     <div className="w-1 h-1 bg-white/20 rounded-full"></div>
-                     <div className="w-1 h-1 bg-white/20 rounded-full"></div>
-                  </div>
-                  <iframe src={config.url} className="w-full h-full rounded-t-xl grayscale opacity-40 pointer-events-none" />
-                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#050505] to-transparent"></div>
-               </motion.div>
-             )}
-
+          <div className="p-8 md:p-12 border-b lg:border-b-0 lg:border-r border-white/5 flex flex-col bg-white/[0.02] relative">
             <h2 className="text-3xl font-black mb-10 flex items-center gap-4 tracking-tighter italic uppercase text-blue-500">
               {step === 1 && <><Globe className="text-white" size={32} /> Identity</>}
               {step === 2 && <><ImageIcon className="text-white" size={32} /> Assets</>}
@@ -580,9 +564,9 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                 >
                   <div className="relative group/device">
                     {/* Device Frame */}
-                    <div className="relative w-64 h-[480px] mx-auto bg-[#0a0a0a] rounded-[3.5rem] border-[10px] border-[#1a1a1a] shadow-2xl p-3 overflow-hidden flex flex-col">
+                    <div className="relative w-[310px] h-[640px] mx-auto bg-[#0a0a0a] rounded-[3.5rem] border-[12px] border-[#1a1a1a] shadow-2xl p-3 overflow-hidden flex flex-col">
                        {/* Notch */}
-                       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-7 w-28 bg-[#1a1a1a] rounded-b-2xl z-30"></div>
+                       <div className="absolute top-0 left-1/2 -translate-x-1/2 h-7 w-32 bg-[#1a1a1a] rounded-b-2xl z-30"></div>
                        
                        {/* Phone Screen Content */}
                        <div className="flex-1 rounded-[2.5rem] overflow-hidden relative shadow-inner">
