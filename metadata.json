@@ -1,6 +1,6 @@
 {
-  "name": "Web2App Converter",
-  "description": "Enterprise-grade Web2App converter with automated logo extraction, secure Firebase storage, and signed APK generation for Android 6.0 and above. Includes AdMob integration and build history.",
+  "name": "Web2App Cloud Build",
+  "description": "Enterprise-grade Web2App converter featuring a 4-stage automated build wizard, GitHub Actions CI/CD integration for signed APKs, real-time status tracking, and private build worker connectivity.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

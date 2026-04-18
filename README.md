@@ -1,20 +1,32 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Web2App Enterprise Build System
 
-# Run and deploy your AI Studio app
+This application is now configured with an **Enterprise-Grade Android Build Pipeline**. 
 
-This contains everything you need to run your app locally.
+## How to finalize the "Private Hookup":
 
-View your app in AI Studio: https://ai.studio/apps/7c61c694-d092-422d-9ca2-b4cb787030f9
+### 1. GitHub Configuration
+1. Create a new private repository (this will hold your Android WebView template).
+2. Copy the contents of your Android project into that repo.
+3. In the repo settings, go to **Secrets and Variables > Actions** and add:
+   - `STORE_PASSWORD`
+   - `KEY_PASSWORD`
+   - `KEY_ALIAS`
+   - `KEYSTORE_FILE` (Base64 version of your `.jks` file)
 
-## Run Locally
+### 2. Connect the Website
+Update your `.env` file with your credentials:
+```env
+GITHUB_TOKEN=your_pat_token
+GITHUB_OWNER=your_username
+GITHUB_REPO=your_private_repo_name
+```
 
-**Prerequisites:**  Node.js
+### 3. Build Flow
+The website now uses a **4-Stage Wizard**:
+1. **General Identity**: Basic site URL and App Name.
+2. **Visual Assets**: Review the auto-extracted logo.
+3. **Build Pipeline**: Configure Package ID and Signing Scheme.
+4. **Review & Deploy**: Trigger the secure GitHub Actions worker.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Deployment
+Run `./deploy.sh` to apply the latest "Smoothened" UI and the GitHub integration.

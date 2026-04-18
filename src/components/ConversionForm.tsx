@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap } from "lucide-react";
+import { Globe, Smartphone, Package as PackageIcon, Check, Loader2, Download, ExternalLink, ArrowRight, ShieldCheck, Lock as PadlockIcon, AlertCircle, Link as LinkIcon, Zap, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db, signInWithGoogle } from "../lib/firebase";
@@ -15,6 +15,8 @@ interface AppConfig {
 
 export default function ConversionForm({ editingApp, onClearEdit }: { editingApp?: any, onClearEdit?: () => void }) {
   const { user } = useAuth();
+  const [step, setStep] = useState(1);
+  const totalSteps = 4;
   const [config, setConfig] = useState<AppConfig>({
     url: "",
     appName: "",
@@ -123,119 +125,208 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 md:p-8">
+      {/* Progress Steps */}
+      <div className="flex justify-between max-w-md mx-auto mb-10 relative">
+        <div className="absolute top-1/2 left-0 w-full h-px bg-white/5 -z-10"></div>
+        {[1, 2, 3, 4].map((s) => (
+          <div 
+            key={s} 
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${
+              step >= s ? 'bg-blue-600 text-white' : 'bg-[#1a1a1a] text-gray-600 border border-white/5'
+            }`}
+          >
+            {step > s ? <Check size={14} /> : s}
+          </div>
+        ))}
+      </div>
+
       <div className="bg-white/5 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative group">
         <div className="absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 relative h-full">
-          {/* Left Side: Form */}
-          <div className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-white/5">
+          {/* Left Side: Dynamic Step Form */}
+          <div className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-white/5 flex flex-col">
             <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
-              <Globe className="text-blue-500" size={28} />
-              Build Settings
+              {step === 1 && <><Globe className="text-blue-500" size={28} /> General Identity</>}
+              {step === 2 && <><AnimatePresence mode="wait"><motion.div initial={{ rotate: -10 }} animate={{ rotate: 0 }}><PackageIcon className="text-blue-500" size={28} /></motion.div></AnimatePresence> Visual Assets</>}
+              {step === 3 && <><Settings className="text-blue-500" size={28} /> Build Pipeline</>}
+              {step === 4 && <><Zap className="text-blue-500" size={28} /> Final Review</>}
             </h2>
             
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Website URL</label>
-                  <div className="relative">
-                    <input
-                      type="url"
-                      required
-                      placeholder="https://your-website.com"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-12 placeholder:text-gray-700"
-                      value={config.url}
-                      onChange={(e) => setConfig({ ...config, url: e.target.value })}
-                      onBlur={handleUrlBlur}
-                    />
-                    <LinkIcon className="absolute left-4 top-4.5 text-blue-500/50" size={20} />
-                    {status === "extracting" && (
-                      <Loader2 className="absolute right-4 top-4.5 animate-spin text-blue-500" size={20} />
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Application Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      placeholder="E.g. My Digital Store"
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-                      value={config.appName}
-                      onChange={(e) => setConfig({ ...config, appName: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-white/5 space-y-4">
-                   <div className="flex items-center justify-between px-1">
-                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign APK</span>
-                      <button 
-                        type="button"
-                        onClick={() => setConfig(c => ({ ...c, signingType: c.signingType === "auto" ? "manual" : "auto" }))}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${config.signingType === 'auto' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                      >
-                         {config.signingType === 'auto' ? 'AUTO V3' : 'CUSTOM KEY'}
-                      </button>
-                   </div>
-                   
-                   <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
-                      <ShieldCheck className="text-blue-500 shrink-0 mt-0.5" size={18} />
-                      <div className="space-y-1">
-                         <p className="text-xs font-bold text-blue-400 uppercase tracking-tighter leading-none">Security Protocol</p>
-                         <p className="text-[10px] text-gray-500 leading-tight">
-                           {config.signingType === 'auto' 
-                             ? "Using secure, auto-generated RSA-2048 keys with V3 signing scheme." 
-                             : "Manual signature requested. You will be prompted for credentials after build."}
-                         </p>
+            <div className="flex-1 space-y-8">
+              <AnimatePresence mode="wait">
+                {step === 1 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6"
+                    key="step1"
+                  >
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Website URL</label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          required
+                          placeholder="https://your-website.com"
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all pl-12 placeholder:text-gray-700"
+                          value={config.url}
+                          onChange={(e) => setConfig({ ...config, url: e.target.value })}
+                          onBlur={handleUrlBlur}
+                        />
+                        <LinkIcon className="absolute left-4 top-4.5 text-blue-500/50" size={20} />
+                        {status === "extracting" && (
+                          <Loader2 className="absolute right-4 top-4.5 animate-spin text-blue-500" size={20} />
+                        )}
                       </div>
-                   </div>
-                </div>
-              </div>
+                    </div>
 
-              {!user ? (
-                <button
-                  type="button"
-                  onClick={signInWithGoogle}
-                  className="w-full py-5 bg-white text-black rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-gray-200 transition-all active:scale-95 shadow-xl shadow-white/5"
-                >
-                  <PadlockIcon size={20} />
-                  Sign in to Build APK
-                </button>
-              ) : editingApp ? (
-                <div className="flex flex-col gap-3">
-                  <button
-                    type="submit"
-                    disabled={status === "building" || status === "signing" || status === "extracting"}
-                    className="w-full py-5 bg-blue-600 rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-500 transition-all active:scale-95 shadow-xl shadow-blue-500/20"
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Application Name</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="E.g. My Digital Store"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+                        value={config.appName}
+                        onChange={(e) => setConfig({ ...config, appName: e.target.value })}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 2 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6"
+                    key="step2"
                   >
-                    <Zap size={20} />
-                    Push Build Update
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onClearEdit) onClearEdit();
-                      setConfig({
-                        url: "",
-                        appName: "",
-                        packageId: "",
-                        iconUrl: "https://picsum.photos/seed/placeholder/512/512",
-                        signingType: "auto",
-                      });
-                    }}
-                    className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 rounded-xl text-xs font-bold hover:bg-white/10 transition-all"
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Application Icon</label>
+                      <div className="flex gap-4 items-center p-4 bg-white/5 border border-white/5 rounded-2xl">
+                         <img src={config.iconUrl} className="w-16 h-16 rounded-xl" alt="" />
+                         <div className="space-y-1">
+                            <p className="text-sm font-bold">Auto-Extracted Logo</p>
+                            <input 
+                              type="text" 
+                              className="bg-transparent text-[10px] text-gray-500 border-none p-0 focus:ring-0 w-full"
+                              value={config.iconUrl}
+                              onChange={(e) => setConfig({ ...config, iconUrl: e.target.value })}
+                            />
+                         </div>
+                      </div>
+                      <p className="text-[10px] text-gray-600 px-1">
+                        We extract the highest resolution apple-touch-icon or shortcut-icon found in your website manifest.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 3 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6"
+                    key="step3"
                   >
-                    Cancel Editing
-                  </button>
-                </div>
-              ) : (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">Package Identifier</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono text-sm"
+                        value={config.packageId}
+                        onChange={(e) => setConfig({ ...config, packageId: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="pt-4 border-t border-white/5 space-y-4">
+                      <div className="flex items-center justify-between px-1">
+                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign APK</span>
+                        <button 
+                          type="button"
+                          onClick={() => setConfig(c => ({ ...c, signingType: c.signingType === "auto" ? "manual" : "auto" }))}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${config.signingType === 'auto' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                        >
+                           {config.signingType === 'auto' ? 'AUTO V3' : 'CUSTOM KEY'}
+                        </button>
+                      </div>
+                      
+                      <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
+                        <ShieldCheck className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                        <div className="space-y-1">
+                           <p className="text-xs font-bold text-blue-400 uppercase tracking-tighter leading-none">Security Protocol</p>
+                           <p className="text-[10px] text-gray-500 leading-tight">
+                             {config.signingType === 'auto' 
+                               ? "Secure RSA-2048 keys with PKCS#12 padding." 
+                               : "Custom keystore required for Play Store publishing."}
+                           </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 4 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="space-y-6"
+                    key="step4"
+                  >
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+                       <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Service</span>
+                          <span className="font-bold">Android Build Worker</span>
+                       </div>
+                       <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Signing</span>
+                          <span className="font-bold">v3 Signature Scheme</span>
+                       </div>
+                       <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-500">Architecture</span>
+                          <span className="font-bold">ARM64-V8A / X86_64</span>
+                       </div>
+                    </div>
+                    
+                    <div className="p-4 border-2 border-dashed border-white/10 rounded-2xl flex items-center gap-3">
+                       <Zap className="text-yellow-500" size={20} />
+                       <p className="text-[10px] text-gray-400 font-medium">Ready for deployment. Pressing the button below will trigger a secure workflow on the private build cluster.</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Navigation Buttons */}
+            <div className="mt-12 flex gap-3">
+               {step > 1 && (
+                 <button 
+                  onClick={() => setStep(s => s - 1)}
+                  className="px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold hover:bg-white/10 transition-all"
+                 >
+                    Back
+                 </button>
+               )}
+               
+               {step < totalSteps ? (
+                 <button 
+                  onClick={() => setStep(s => s + 1)}
+                  disabled={!config.url || (step === 1 && !config.appName)}
+                  className="flex-1 py-4 bg-blue-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all shadow-xl shadow-blue-600/20"
+                 >
+                    Next Stage
+                 </button>
+               ) : (
                 <button
-                  type="submit"
+                  onClick={handleSubmit}
                   disabled={status === "building" || status === "signing" || status === "extracting"}
-                  className={`w-full py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${
+                  className={`flex-1 py-5 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all ${
                     status === "building" 
                       ? "bg-blue-600/50 cursor-not-allowed opacity-50" 
                       : "bg-blue-600 hover:bg-blue-500 active:scale-95 shadow-xl shadow-blue-500/20"
@@ -248,13 +339,13 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                     </>
                   ) : (
                     <>
-                      Generate Enterprise APK
+                      Deploy to Build Cluster
                       <ArrowRight size={20} />
                     </>
                   )}
                 </button>
-              )}
-            </form>
+               )}
+            </div>
           </div>
 
           {/* Right Side: Device Preview */}

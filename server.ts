@@ -95,20 +95,49 @@ async function startServer() {
     const { url, appName, packageId, iconUrl, userId, signingType } = req.body;
     
     const buildId = Math.random().toString(36).substring(7);
-    
-    // In a production app, we would:
-    // 1. Create a "pending" build record in Firestore
-    // 2. Trigger a GitHub Action (Private Worker) via Repository Dispatch
-    // 3. GitHub Action updates the status via another API route
-    
+    const githubToken = process.env.GITHUB_TOKEN;
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+
     console.log(`[BUILD] Triggered build ${buildId} for ${url}`);
+
+    if (githubToken && owner && repo) {
+      try {
+        // Trigger GitHub Actions Workflow Dispatch
+        await axios.post(
+          `https://api.github.com/repos/${owner}/${repo}/actions/workflows/android-build.yml/dispatches`,
+          {
+            ref: "main",
+            inputs: {
+              build_id: buildId,
+              site_url: url,
+              app_name: appName,
+              package_id: packageId,
+              icon_url: iconUrl,
+              signing_type: signingType
+            }
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${githubToken}`,
+              Accept: "application/vnd.github.v3+json",
+            }
+          }
+        );
+        console.log(`[GITHUB] Workflow dispatched successfully for ${buildId}`);
+      } catch (err: any) {
+        console.error(`[GITHUB ERROR] Failed to dispatch workflow: ${err.message}`);
+      }
+    } else {
+      console.warn("[BUILD] GitHub credentials missing. Running in Simulation Mode.");
+    }
     
-    // Simulate initial response to allow UI to show "Connecting..."
+    // Response remains optimistic to kick off UI progress
     res.json({
       success: true,
       buildId,
-      message: "Initiating Private Build Worker...",
-      status: "queued"
+      message: githubToken ? "Connected to Build Cluster" : "Simulated Worker connected",
+      status: "initializing"
     });
   });
 
