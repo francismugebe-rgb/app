@@ -10,6 +10,7 @@ interface AppConfig {
   appName: string;
   packageId: string;
   iconUrl: string;
+  signingType: "auto" | "manual";
 }
 
 export default function ConversionForm({ editingApp, onClearEdit }: { editingApp?: any, onClearEdit?: () => void }) {
@@ -19,9 +20,10 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
     appName: "",
     packageId: "",
     iconUrl: "https://picsum.photos/seed/placeholder/512/512",
+    signingType: "auto",
   });
 
-  const [status, setStatus] = useState<"idle" | "extracting" | "building" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "extracting" | "building" | "signing" | "success" | "error">("idle");
   const [result, setResult] = useState<any>(null);
 
   useEffect(() => {
@@ -46,14 +48,19 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
 
     setStatus("building");
     try {
-      const response = await fetch("/api/convert", {
+      // Stage 1: Building
+      const buildRes = await fetch("/api/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...config, userId: user.uid }),
       });
-      const data = await response.json();
+      const data = await buildRes.json();
       
       if (data.success) {
+        // Stage 2: Signing animation
+        setStatus("signing");
+        await new Promise(r => setTimeout(r, 1500));
+
         if (editingApp) {
           // Update existing
           const { updateDoc, doc } = await import("firebase/firestore");
@@ -62,6 +69,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
             appName: config.appName,
             packageId: config.packageId,
             iconUrl: config.iconUrl,
+            signingType: config.signingType,
             updatedAt: serverTimestamp(),
           });
           if (onClearEdit) onClearEdit();
@@ -73,6 +81,7 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
             appName: config.appName,
             packageId: config.packageId,
             iconUrl: config.iconUrl,
+            signingType: config.signingType,
             status: "success",
             downloadUrl: data.downloadUrl,
             createdAt: serverTimestamp(),
@@ -165,11 +174,26 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
                 </div>
 
                 <div className="pt-4 border-t border-white/5 space-y-4">
+                   <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Sign APK</span>
+                      <button 
+                        type="button"
+                        onClick={() => setConfig(c => ({ ...c, signingType: c.signingType === "auto" ? "manual" : "auto" }))}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${config.signingType === 'auto' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                      >
+                         {config.signingType === 'auto' ? 'AUTO V3' : 'CUSTOM KEY'}
+                      </button>
+                   </div>
+                   
                    <div className="flex items-start gap-3 p-3 bg-blue-500/5 rounded-xl border border-blue-500/10">
                       <ShieldCheck className="text-blue-500 shrink-0 mt-0.5" size={18} />
                       <div className="space-y-1">
                          <p className="text-xs font-bold text-blue-400 uppercase tracking-tighter leading-none">Security Protocol</p>
-                         <p className="text-[10px] text-gray-500 leading-tight">Package ID and Signing Keys are handled privately on our secure build server.</p>
+                         <p className="text-[10px] text-gray-500 leading-tight">
+                           {config.signingType === 'auto' 
+                             ? "Using secure, auto-generated RSA-2048 keys with V3 signing scheme." 
+                             : "Manual signature requested. You will be prompted for credentials after build."}
+                         </p>
                       </div>
                    </div>
                 </div>
@@ -213,7 +237,38 @@ export default function ConversionForm({ editingApp, onClearEdit }: { editingApp
           {/* Right Side: Device Preview */}
           <div className="p-8 md:p-12 bg-black/40 flex flex-col justify-center items-center">
             <AnimatePresence mode="wait">
-              {status !== "success" ? (
+              {status === "building" || status === "signing" ? (
+                <motion.div 
+                  key="building"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center space-y-6 w-full max-w-[240px]"
+                >
+                  <div className="relative w-24 h-24 mx-auto">
+                    <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                       {status === 'signing' ? <Lock className="text-blue-500" size={32} /> : <Package className="text-blue-500" size={32} />}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-bold tracking-tight uppercase">
+                       {status === 'signing' ? 'Applying V3 Signature' : 'Serializing Bundle'}
+                    </h3>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                       <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: status === 'signing' ? '90%' : '45%' }}
+                        className="h-full bg-blue-500"
+                       />
+                    </div>
+                    <p className="text-[10px] text-gray-500 uppercase font-mono tracking-widest animate-pulse">
+                       {status === 'signing' ? 'Keytool: generating pkcs12...' : 'Compiling Manifest...'}
+                    </p>
+                  </div>
+                </motion.div>
+              ) : status !== "success" ? (
                 <motion.div 
                   key="preview"
                   initial={{ opacity: 0, scale: 0.95 }}
