@@ -1,21 +1,38 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
+import { fileURLToPath } from "url";
 import * as fs from "fs";
 import axios from "axios";
 import { JSDOM } from "jsdom";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3003;
+  const isProd = process.env.NODE_ENV === "production";
+  const distPath = path.resolve(__dirname, "dist");
 
-  // Ensure builds directory exists
-  const buildsDir = path.join(process.cwd(), "public", "builds");
-  if (!fs.existsSync(buildsDir)) {
-    fs.mkdirSync(buildsDir, { recursive: true });
+  console.log(`[INIT] Starting in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+  console.log(`[INIT] Dist path: ${distPath}`);
+
+  if (isProd && !fs.existsSync(distPath)) {
+    console.error("[CRITICAL] Dist directory not found. Please run 'npm run build' first.");
   }
 
   app.use(express.json());
+
+  // Health Check
+  app.get("/api/ping", (req, res) => {
+    res.json({ 
+      status: "alive", 
+      time: new Date().toISOString(),
+      mode: process.env.NODE_ENV,
+      distExists: fs.existsSync(distPath)
+    });
+  });
 
   // API Route: Download APK (Real file delivery)
   app.get("/api/download/:appId", (req, res) => {
@@ -110,17 +127,26 @@ async function startServer() {
   });
 
   // Vite integration
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    // Serve static files from dist
+    app.use(express.static(distPath, {
+      maxAge: '1d',
+      index: false // We handle index via wildcard to ensure SPA fallback
+    }));
+
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send("Production build (index.html) missing. Deployment error.");
+      }
     });
   }
 

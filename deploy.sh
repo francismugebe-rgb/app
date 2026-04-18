@@ -15,6 +15,13 @@ echo "🏗️ Building frontend assets..."
 npm run clean
 npm run build
 
+# 3.5 Verify dist
+if [ ! -d "dist" ]; then
+  echo "❌ Error: Build failed to create dist directory!"
+  exit 1
+fi
+echo "✅ Build verified."
+
 # 4. Global process check
 echo "🔍 Checking port 3003..."
 fuser -k 3003/tcp || true

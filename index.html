@@ -18,9 +18,23 @@
     <meta property="twitter:description" content="Convert any website to a native Android APK effortlessly." />
     <meta property="twitter:image" content="https://picsum.photos/seed/web2app-meta/1200/630" />
   </head>
-  <body>
+  <body style="background: #050505;">
+    <div id="loading-fallback" style="position: fixed; inset: 0; display: flex; align-items: center; justify-center: center; color: #444; font-family: monospace; font-size: 10px; z-index: -1;">
+      INITIALIZING_CLIENT_v1.0.2...
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === '' && !window.__WEB2APP_STARTED) {
+          console.error("React failed to mount within 5s. Check console for fatal errors.");
+          document.getElementById('loading-fallback').innerText = "FATAL: REACT_MOUNT_FAILED. Check browser console.";
+          document.getElementById('loading-fallback').style.color = "red";
+          document.getElementById('loading-fallback').style.zIndex = "100";
+        }
+      }, 5000);
+    </script>
   </body>
 </html>
 
