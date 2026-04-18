@@ -179,24 +179,24 @@ export default function App() {
   const [editingApp, setEditingApp] = useState<any>(null);
 
   useEffect(() => {
-    console.log("[Web2App] Auth state:", { loading, hasUser: !!user });
-    
-    // Fallback in case auth listener hangs at terminal loading
-    const timer = setTimeout(() => {
-      if (loading) {
-        console.warn("[Web2App] Auth listener timed out. Proceeding...");
-        // This is a safety valve for "blank page" issues in restricted networks
-      }
-    }, 8000);
-    
-    return () => clearTimeout(timer);
-  }, [loading, user]);
+    // Smooth scroll to top on mount
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
   
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-gray-500 font-mono text-xs uppercase tracking-widest">Waking Build Servers...</p>
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center space-y-8">
+        <div className="relative">
+           <div className="w-16 h-16 border-2 border-white/5 rounded-2xl"></div>
+           <div className="absolute inset-0 w-16 h-16 border-2 border-blue-600 border-t-transparent rounded-2xl animate-spin"></div>
+           <div className="absolute inset-0 flex items-center justify-center">
+              <PackageIcon className="text-blue-500/50" size={24} />
+           </div>
+        </div>
+        <div className="space-y-2 text-center">
+          <p className="text-white font-bold tracking-tight text-lg">Web2App Pro</p>
+          <p className="text-gray-500 font-mono text-[10px] uppercase tracking-widest animate-pulse">Establishing Secure Socket...</p>
+        </div>
       </div>
     );
   }

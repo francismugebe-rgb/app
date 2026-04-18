@@ -8,5 +8,4 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 );
-(window as any).__WEB2APP_STARTED = true;
-console.log("[Web2App] Application initialized");
+console.log("[Web2App] Optimized production bundle loaded");
